@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>RNIOBC TPET I Quiz Tool</title>
+    <title>TPET I Practice Quiz</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         * {
@@ -93,6 +93,22 @@
         .button-secondary:hover {
             background-color: #475569;
             border-color: #64748b;
+        }
+
+        .button-warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        .button-warning:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(245, 158, 11, 0.4);
         }
 
         .button-small {
@@ -712,9 +728,8 @@
                 <div class="min-h-screen fade-in">
                     <div class="max-w-6xl mx-auto px-4 py-8">
                         <div class="text-center mb-12">
-                            <h1 class="text-5xl font-bold gradient-text mb-4">RNIOBC TPET I</h1>
-                            <p class="text-xl text-slate-400">Enhanced Interactive Quiz Tool</p>
-                            <p class="text-sm text-slate-500 mt-2">Reserve Naval Intelligence Officer Basic Course</p>
+                            <h1 class="text-5xl font-bold gradient-text mb-4">TPET I Practice Quiz</h1>
+                            <p class="text-lg text-slate-400">Reserve Naval Intelligence Officer Basic Course</p>
                         </div>
 
                         <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
@@ -724,24 +739,27 @@
 
                                 <!-- Section Selection -->
                                 <div class="mb-6">
-                                    <div class="flex justify-between items-center mb-3">
+                                    <div class="flex justify-between items-center mb-4">
                                         <h3 class="text-lg font-semibold">Select Sections</h3>
                                         <button class="button-secondary button-small" onclick="toggleAllSections()">
                                             Toggle All
                                         </button>
                                     </div>
-                                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
                                         ${[1, 2, 3, 4, 5, 6].map(section => {
-                                            const sectionName = QUESTIONS.find(q => q.section === section)?.section_name || `Section ${section}`;
+                                            const sectionName = QUESTIONS.find(q => q.section === section)?.section_name || 'Section ' + section;
+                                            const count = QUESTIONS.filter(q => q.section === section).length;
                                             const isChecked = appState.selectedSections.has(section);
-                                            return `
-                                                <label class="flex items-center space-x-2 cursor-pointer p-2 rounded hover:bg-slate-800 transition">
-                                                    <input type="checkbox" class="checkbox" ${isChecked ? 'checked' : ''}
-                                                        onchange="toggleSection(${section})">
-                                                    <span class="section-indicator ${getSectionColor(section)}">S${section}</span>
-                                                </label>
-                                            `;
-                                        })}
+                                            return '<label class="flex items-center gap-3 cursor-pointer p-3 rounded-lg border ' +
+                                                (isChecked ? 'border-blue-500 bg-slate-800' : 'border-slate-700 hover:border-slate-500') +
+                                                ' transition">' +
+                                                '<input type="checkbox" class="checkbox" ' + (isChecked ? 'checked' : '') +
+                                                ' onchange="toggleSection(' + section + ')">' +
+                                                '<span class="section-indicator ' + getSectionColor(section) + '">S' + section + '</span>' +
+                                                '<span class="flex flex-col"><span class="text-sm font-semibold">' + sectionName + '</span>' +
+                                                '<span class="text-xs text-slate-400">' + count + ' questions</span></span>' +
+                                                '</label>';
+                                        }).join('')}
                                     </div>
                                 </div>
 
@@ -751,13 +769,13 @@
                                     <p class="text-sm text-slate-400 mb-3">
                                         Available: <span class="font-bold">${availableQuestions}</span> questions
                                     </p>
-                                    <div class="grid grid-cols-3 md:grid-cols-4 gap-2">
+                                    <div class="grid grid-cols-3 md:grid-cols-6 gap-2">
                                         ${[10, 25, 50, 75, 100, 'all'].map(count => `
                                             <button class="button-secondary button-small ${appState.questionCount === count ? 'border-blue-500 border-2' : ''}"
                                                 onclick="setQuestionCount(${typeof count === 'number' ? count : "'all'"})">
                                                 ${count === 'all' ? 'All' : count}
                                             </button>
-                                        `)}
+                                        `).join('')}
                                     </div>
                                 </div>
 
@@ -1362,7 +1380,7 @@
             if (appState.currentScreen !== 'home') {
                 content += `
                     <div class="header">
-                        <h1 class="text-2xl font-bold gradient-text">RNIOBC TPET I</h1>
+                        <h1 class="text-2xl font-bold gradient-text">TPET I</h1>
                         <button class="button-secondary" onclick="confirmHome()">Home</button>
                     </div>
                 `;
