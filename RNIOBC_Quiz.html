@@ -242,6 +242,82 @@
             align-items: center;
         }
 
+        .hint-popup {
+            background-color: #1e3a5f;
+            border: 1px solid #3b82f6;
+            border-radius: 8px;
+            padding: 1rem 1.25rem;
+            margin-bottom: 1rem;
+            animation: slideDown 0.2s ease-out;
+        }
+
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hint-button {
+            background: transparent;
+            border: 1px solid #f59e0b;
+            color: #f59e0b;
+            padding: 0.5rem 1rem;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: all 0.2s;
+        }
+
+        .hint-button:hover {
+            background-color: rgba(245, 158, 11, 0.1);
+        }
+
+        .grade-button.selected {
+            color: white !important;
+        }
+
+        .grade-button.got-it.selected {
+            background-color: #10b981;
+            border-color: #10b981;
+        }
+
+        .grade-button.partial.selected {
+            background-color: #f59e0b;
+            border-color: #f59e0b;
+        }
+
+        .grade-button.missed.selected {
+            background-color: #ef4444;
+            border-color: #ef4444;
+        }
+
+        .score-tracker {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            justify-content: center;
+            padding: 0.5rem 1rem;
+            background-color: rgba(15, 23, 42, 0.6);
+            border: 1px solid #334155;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+        }
+
+        .score-tracker-item {
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .score-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
         .svg-map {
             background-color: #0f172a;
             border: 1px solid #334155;
@@ -597,7 +673,8 @@
             userAnswers: [],
             quizResults: [],
             performanceHistory: [],
-            quizStarted: false
+            quizStarted: false,
+            showHint: false
         };
 
         // ==================== SEMANTIC MATCHING ENGINE ====================
@@ -835,9 +912,20 @@
             const question = appState.currentQuizQuestions[appState.currentQuestionIndex];
             const progress = ((appState.currentQuestionIndex + 1) / appState.currentQuizQuestions.length) * 100;
 
+            const score = getRunningScore();
+            const hint = generateHint(question);
+
             return `
                 <div class="min-h-screen fade-in pb-8">
                     <div class="max-w-4xl mx-auto px-4 py-8">
+                        <!-- Running Score Tracker -->
+                        <div class="score-tracker" id="scoreTracker">
+                            <span class="score-tracker-item"><span class="score-dot" style="background:#10b981;"></span> ${score.gotIt} Got It</span>
+                            <span class="score-tracker-item"><span class="score-dot" style="background:#f59e0b;"></span> ${score.partial} Partial</span>
+                            <span class="score-tracker-item"><span class="score-dot" style="background:#ef4444;"></span> ${score.missed} Missed</span>
+                            <span class="score-tracker-item" style="color:#64748b;">${score.unanswered} remaining</span>
+                        </div>
+
                         <!-- Progress Bar -->
                         <div class="mb-8">
                             <div class="flex justify-between items-center mb-2">
@@ -853,11 +941,24 @@
 
                         <!-- Question Card -->
                         <div class="card mb-6">
-                            <div class="flex items-center gap-3 mb-4">
+                            <div class="flex items-center justify-between mb-4">
                                 <span class="section-indicator ${getSectionColor(question.section)}">
                                     ${question.section_name}
                                 </span>
+                                ${!appState.userAnswers[appState.currentQuestionIndex] ? `
+                                    <button class="hint-button" onclick="toggleHint()">
+                                        ${appState.showHint ? '✕ Hide Hint' : '💡 Hint'}
+                                    </button>
+                                ` : ''}
                             </div>
+
+                            ${appState.showHint && !appState.userAnswers[appState.currentQuestionIndex] ? `
+                                <div class="hint-popup">
+                                    <p class="text-sm text-blue-300 mb-1"><strong>Key terms to consider:</strong></p>
+                                    <p class="text-sm text-slate-300">${hint.keyTerms}</p>
+                                </div>
+                            ` : ''}
+
                             <h2 class="text-2xl font-bold mb-6">${question.question}</h2>
 
                             ${question.type === 'map' ? `
@@ -868,12 +969,14 @@
 
                             <!-- Answer Input -->
                             <textarea id="answerInput" class="textarea w-full mb-4"
-                                placeholder="Enter your answer here..."></textarea>
+                                placeholder="Enter your answer here...">${appState.userAnswers[appState.currentQuestionIndex]?.userAnswer || ''}</textarea>
 
                             <!-- Check Answer Button -->
-                            <button class="button-primary w-full mb-4" onclick="checkAnswer()">
-                                Check Answer
-                            </button>
+                            ${!appState.userAnswers[appState.currentQuestionIndex] ? `
+                                <button class="button-primary w-full mb-4" onclick="checkAnswer()">
+                                    Check Answer
+                                </button>
+                            ` : ''}
 
                             ${appState.userAnswers[appState.currentQuestionIndex] ? renderAnswerEvaluation() : ''}
                         </div>
@@ -943,9 +1046,9 @@
                     <p class="text-sm text-slate-400 mb-3">Your Grade:</p>
                     <div class="flex gap-2 flex-wrap">
                         ${['Got It', 'Partial', 'Missed'].map(grade => `
-                            <button class="grade-button ${grade.toLowerCase().replace(' ', '-')} ${answer.grade === grade ? 'border-2' : ''}"
+                            <button class="grade-button ${grade.toLowerCase().replace(' ', '-')} ${answer.grade === grade ? 'selected' : ''}"
                                 onclick="gradeAnswer('${grade}')">
-                                ${grade}
+                                ${grade === 'Got It' ? '✓ ' : grade === 'Partial' ? '~ ' : '✗ '}${grade}
                             </button>
                         `).join('')}
                     </div>
@@ -1247,6 +1350,35 @@
             render();
         }
 
+        function generateHint(question) {
+            // Build a hint from keywords and the first clause of the answer
+            const keywords = question.keywords.slice(0, 3);
+            const answerStart = question.answer.split(/[.;]/)[0];
+            // Truncate to ~60 chars
+            const truncated = answerStart.length > 80 ? answerStart.substring(0, 80) + '...' : answerStart;
+            return {
+                keyTerms: keywords.join(', '),
+                nudge: truncated
+            };
+        }
+
+        function toggleHint() {
+            appState.showHint = !appState.showHint;
+            render();
+            // Preserve textarea content
+        }
+
+        function getRunningScore() {
+            let gotIt = 0, partial = 0, missed = 0, unanswered = 0;
+            appState.userAnswers.forEach(a => {
+                if (!a || !a.grade) unanswered++;
+                else if (a.grade === 'Got It') gotIt++;
+                else if (a.grade === 'Partial') partial++;
+                else if (a.grade === 'Missed') missed++;
+            });
+            return { gotIt, partial, missed, unanswered };
+        }
+
         function checkAnswer() {
             const textarea = document.getElementById('answerInput');
             if (!textarea) return;
@@ -1279,13 +1411,34 @@
             const answer = appState.userAnswers[appState.currentQuestionIndex];
             if (answer) {
                 answer.grade = grade;
-                render();
+                // Update buttons in-place without full re-render
+                document.querySelectorAll('.grade-button').forEach(btn => {
+                    btn.classList.remove('selected');
+                });
+                const clicked = document.querySelector(`.grade-button.${grade.toLowerCase().replace(' ', '-')}`);
+                if (clicked) clicked.classList.add('selected');
+                // Update running score tracker
+                updateScoreTracker();
+            }
+        }
+
+        function updateScoreTracker() {
+            const score = getRunningScore();
+            const el = document.getElementById('scoreTracker');
+            if (el) {
+                el.innerHTML = `
+                    <span class="score-tracker-item"><span class="score-dot" style="background:#10b981;"></span> ${score.gotIt} Got It</span>
+                    <span class="score-tracker-item"><span class="score-dot" style="background:#f59e0b;"></span> ${score.partial} Partial</span>
+                    <span class="score-tracker-item"><span class="score-dot" style="background:#ef4444;"></span> ${score.missed} Missed</span>
+                    <span class="score-tracker-item" style="color:#64748b;">${score.unanswered} remaining</span>
+                `;
             }
         }
 
         function nextQuestion() {
             if (appState.currentQuestionIndex < appState.currentQuizQuestions.length - 1) {
                 appState.currentQuestionIndex++;
+                appState.showHint = false;
                 render();
                 window.scrollTo(0, 0);
             }
@@ -1294,6 +1447,7 @@
         function previousQuestion() {
             if (appState.currentQuestionIndex > 0) {
                 appState.currentQuestionIndex--;
+                appState.showHint = false;
                 render();
                 window.scrollTo(0, 0);
             }
