@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>U.S. Strategic Military & Intelligence Map</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: #0a0e1a; color: #e0e0e0; }
+
+  #map { width: 100%; height: 100vh; }
+
+  /* Control Panel */
+  #control-panel {
+    position: absolute; top: 10px; right: 10px; z-index: 1000;
+    background: rgba(10, 14, 26, 0.93); border: 1px solid #2a3a5c;
+    border-radius: 10px; padding: 16px; width: 290px;
+    max-height: calc(100vh - 30px); overflow-y: auto;
+    backdrop-filter: blur(12px); box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  }
+  #control-panel h2 {
+    font-size: 14px; text-transform: uppercase; letter-spacing: 1.5px;
+    color: #8aa4cf; margin-bottom: 14px; border-bottom: 1px solid #2a3a5c;
+    padding-bottom: 8px;
+  }
+  .layer-group { margin-bottom: 14px; }
+  .layer-group h3 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: 1px;
+    margin-bottom: 6px; display: flex; align-items: center; gap: 6px;
+  }
+  .color-dot {
+    display: inline-block; width: 10px; height: 10px; border-radius: 50%;
+  }
+  .layer-group label {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 12px; padding: 3px 0; cursor: pointer; color: #b0bec5;
+  }
+  .layer-group label:hover { color: #fff; }
+  .layer-group input[type="checkbox"] { accent-color: #4fc3f7; }
+
+  .master-toggle {
+    cursor: pointer; font-weight: 600; font-size: 13px;
+    display: flex; align-items: center; gap: 6px;
+    padding: 6px 0; border-bottom: 1px solid #1e2d4a; margin-bottom: 4px;
+  }
+
+  /* Title bar */
+  #title-bar {
+    position: absolute; top: 10px; left: 60px; z-index: 1000;
+    background: rgba(10, 14, 26, 0.93); border: 1px solid #2a3a5c;
+    border-radius: 10px; padding: 12px 20px;
+    backdrop-filter: blur(12px); box-shadow: 0 4px 24px rgba(0,0,0,0.5);
+  }
+  #title-bar h1 { font-size: 16px; color: #e0e0e0; letter-spacing: 0.5px; }
+  #title-bar p { font-size: 11px; color: #6a8cbe; margin-top: 2px; }
+
+  /* Legend */
+  #legend {
+    position: absolute; bottom: 30px; left: 10px; z-index: 1000;
+    background: rgba(10, 14, 26, 0.93); border: 1px solid #2a3a5c;
+    border-radius: 10px; padding: 12px 16px;
+    backdrop-filter: blur(12px); font-size: 11px;
+  }
+  #legend h3 { font-size: 12px; margin-bottom: 6px; color: #8aa4cf; }
+  .legend-item { display: flex; align-items: center; gap: 6px; padding: 2px 0; }
+
+  /* Popup styling */
+  .leaflet-popup-content-wrapper {
+    background: rgba(15, 20, 35, 0.96) !important;
+    color: #e0e0e0 !important; border: 1px solid #2a3a5c !important;
+    border-radius: 8px !important; box-shadow: 0 4px 20px rgba(0,0,0,0.6) !important;
+  }
+  .leaflet-popup-tip { background: rgba(15, 20, 35, 0.96) !important; }
+  .popup-title { font-size: 14px; font-weight: 700; margin-bottom: 4px; }
+  .popup-cat { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; opacity: 0.7; margin-bottom: 6px; }
+  .popup-desc { font-size: 12px; line-height: 1.5; }
+  .popup-tag {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 10px; font-weight: 600; margin-top: 6px; margin-right: 4px;
+  }
+
+  /* Scrollbar */
+  #control-panel::-webkit-scrollbar { width: 4px; }
+  #control-panel::-webkit-scrollbar-track { background: transparent; }
+  #control-panel::-webkit-scrollbar-thumb { background: #2a3a5c; border-radius: 4px; }
+
+  /* Search box */
+  #search-box {
+    width: 100%; padding: 7px 10px; border-radius: 6px;
+    border: 1px solid #2a3a5c; background: rgba(255,255,255,0.05);
+    color: #e0e0e0; font-size: 12px; margin-bottom: 12px; outline: none;
+  }
+  #search-box::placeholder { color: #5a6a8a; }
+  #search-box:focus { border-color: #4fc3f7; }
+</style>
+</head>
+<body>
+
+<div id="title-bar">
+  <h1>U.S. Strategic Military & Intelligence Map</h1>
+  <p>COCOMs &bull; Navy Fleets &bull; Strategic Chokepoints &bull; Intelligence Community</p>
+</div>
+
+<div id="control-panel">
+  <h2>Layers &amp; Filters</h2>
+  <input type="text" id="search-box" placeholder="Search markers..." />
+
+  <!-- COCOMs (All 11) -->
+  <div class="layer-group">
+    <label class="master-toggle">
+      <input type="checkbox" checked data-master="cocom" />
+      <span class="color-dot" style="background:#ff6e40;"></span>
+      <span style="color:#ff6e40;">Combatant Commands (11)</span>
+    </label>
+    <div id="cocom-list"></div>
+  </div>
+
+  <!-- Navy Fleets -->
+  <div class="layer-group">
+    <label class="master-toggle">
+      <input type="checkbox" checked data-master="fleet" />
+      <span class="color-dot" style="background:#4fc3f7;"></span>
+      <span style="color:#4fc3f7;">Navy Fleets</span>
+    </label>
+    <div id="fleet-list"></div>
+  </div>
+
+  <!-- Strategic Chokepoints -->
+  <div class="layer-group">
+    <label class="master-toggle">
+      <input type="checkbox" checked data-master="chokepoint" />
+      <span class="color-dot" style="background:#66bb6a;"></span>
+      <span style="color:#66bb6a;">Strategic Chokepoints</span>
+    </label>
+    <div id="chokepoint-list"></div>
+  </div>
+
+  <!-- Intelligence Community -->
+  <div class="layer-group">
+    <label class="master-toggle">
+      <input type="checkbox" checked data-master="intel" />
+      <span class="color-dot" style="background:#ce93d8;"></span>
+      <span style="color:#ce93d8;">Intelligence Community (18)</span>
+    </label>
+    <div id="intel-list"></div>
+  </div>
+</div>
+
+<div id="legend">
+  <h3>Legend</h3>
+  <div class="legend-item"><span class="color-dot" style="background:#ff6e40;"></span> Combatant Command (COCOM) HQ</div>
+  <div class="legend-item"><span class="color-dot" style="background:#4fc3f7;"></span> Navy Fleet HQ</div>
+  <div class="legend-item"><span class="color-dot" style="background:#66bb6a;"></span> Strategic Chokepoint</div>
+  <div class="legend-item"><span class="color-dot" style="background:#ce93d8;"></span> Intelligence Agency</div>
+</div>
+
+<div id="map"></div>
+
+<script>
+// ── Map Setup ──
+const map = L.map('map', {
+  center: [20, 0],
+  zoom: 3,
+  minZoom: 2,
+  maxZoom: 18,
+  zoomControl: true,
+  worldCopyJump: true
+});
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+  attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+  subdomains: 'abcd',
+  maxZoom: 20
+}).addTo(map);
+
+// ── Icon Factory ──
+function makeIcon(color, size = 12) {
+  return L.divIcon({
+    className: 'custom-marker',
+    html: `<div style="
+      width:${size}px; height:${size}px; border-radius:50%;
+      background:${color}; border:2px solid #fff;
+      box-shadow: 0 0 8px ${color}, 0 0 16px ${color}44;
+    "></div>`,
+    iconSize: [size, size],
+    iconAnchor: [size/2, size/2],
+    popupAnchor: [0, -size/2 - 4]
+  });
+}
+
+function makeDiamond(color, size = 14) {
+  return L.divIcon({
+    className: 'custom-marker',
+    html: `<div style="
+      width:${size}px; height:${size}px;
+      background:${color}; border:2px solid #fff;
+      transform: rotate(45deg);
+      box-shadow: 0 0 8px ${color}, 0 0 16px ${color}44;
+    "></div>`,
+    iconSize: [size, size],
+    iconAnchor: [size/2, size/2],
+    popupAnchor: [0, -size/2 - 4]
+  });
+}
+
+function makeTriangle(color, size = 14) {
+  return L.divIcon({
+    className: 'custom-marker',
+    html: `<div style="
+      width:0; height:0;
+      border-left:${size/2}px solid transparent;
+      border-right:${size/2}px solid transparent;
+      border-bottom:${size}px solid ${color};
+      filter: drop-shadow(0 0 6px ${color});
+    "></div>`,
+    iconSize: [size, size],
+    iconAnchor: [size/2, size],
+    popupAnchor: [0, -size - 2]
+  });
+}
+
+function makeStar(color, size = 16) {
+  return L.divIcon({
+    className: 'custom-marker',
+    html: `<div style="
+      font-size:${size}px; color:${color}; line-height:1;
+      text-shadow: 0 0 8px ${color}, 0 0 16px ${color}44;
+    ">★</div>`,
+    iconSize: [size, size],
+    iconAnchor: [size/2, size/2],
+    popupAnchor: [0, -size/2 - 2]
+  });
+}
+
+// ── Popup Builder ──
+function buildPopup(d) {
+  const tagColors = {
+    'Geographic COCOM': '#ff6e40',
+    'Functional COCOM': '#ff6e40',
+    'COCOM': '#ff6e40',
+    'Navy Fleet': '#4fc3f7',
+    'Chokepoint': '#66bb6a',
+    'Intelligence Community': '#ce93d8',
+    'IC Program Manager': '#ce93d8',
+    'Military Intelligence': '#b39ddb',
+    'Departmental Intelligence': '#9fa8da',
+    'DoD': '#ffab40',
+    'Navy': '#4fc3f7',
+    'Pacific': '#00bcd4',
+    'Atlantic': '#42a5f5',
+    'Middle East': '#ffa726',
+    'Europe': '#7986cb',
+    'South America': '#81c784',
+    'Africa': '#a1887f',
+    'Global': '#b0bec5',
+    'Arctic': '#80deea',
+    'Cyber': '#ea80fc',
+    'Space': '#b388ff',
+    'Nuclear': '#ff8a80',
+    'SOF': '#ffcc02',
+    'Logistics': '#bcaaa4',
+    'Indo-Pacific': '#26c6da',
+    'SLOCs': '#66bb6a',
+    'Energy': '#ffb74d',
+    'Trade': '#aed581',
+    'Law Enforcement': '#f48fb1',
+    'Homeland Security': '#ef5350',
+    'Diplomatic': '#4dd0e1',
+  };
+
+  let tags = (d.tags || []).map(t => {
+    const bg = tagColors[t] || '#607d8b';
+    return `<span class="popup-tag" style="background:${bg}33;color:${bg};border:1px solid ${bg}66;">${t}</span>`;
+  }).join('');
+
+  return `
+    <div class="popup-title">${d.name}</div>
+    <div class="popup-cat">${d.category}</div>
+    <div class="popup-desc">${d.desc}</div>
+    <div style="margin-top:6px;">${tags}</div>
+  `;
+}
+
+// ── DATA ──
+
+const geoCocoms = [
+  {
+    name: "USINDOPACOM",
+    fullName: "U.S. Indo-Pacific Command",
+    lat: 21.375, lng: -157.94,
+    desc: "HQ: Camp H.M. Smith, Hawaii. AOR spans from the U.S. West Coast to India's western border and from the Arctic to Antarctica — the largest geographic COCOM covering 36 nations and over half the world's population.",
+    tags: ["Geographic COCOM", "COCOM", "Indo-Pacific", "Pacific"],
+    category: "Geographic Combatant Command"
+  },
+  {
+    name: "USEUCOM",
+    fullName: "U.S. European Command",
+    lat: 48.73, lng: 9.10,
+    desc: "HQ: Patch Barracks, Stuttgart, Germany. AOR covers 51 countries across Europe, parts of the Middle East, and Eurasia. Dual-hatted commander also serves as NATO's Supreme Allied Commander Europe (SACEUR).",
+    tags: ["Geographic COCOM", "COCOM", "Europe", "Atlantic"],
+    category: "Geographic Combatant Command"
+  },
+  {
+    name: "USAFRICOM",
+    fullName: "U.S. Africa Command",
+    lat: 48.74, lng: 9.11,
+    desc: "HQ: Kelley Barracks, Stuttgart, Germany. AOR covers 53 African nations (all except Egypt). Focuses on counter-terrorism, crisis response, and building partner capacity across the continent.",
+    tags: ["Geographic COCOM", "COCOM", "Africa"],
+    category: "Geographic Combatant Command"
+  },
+  {
+    name: "USCENTCOM",
+    fullName: "U.S. Central Command",
+    lat: 27.85, lng: -82.50,
+    desc: "HQ: MacDill AFB, Tampa, FL. AOR covers 21 nations across the Middle East, Central & South Asia — from Egypt to Kazakhstan to Pakistan. Forward HQ at Al Udeid AB, Qatar.",
+    tags: ["Geographic COCOM", "COCOM", "Middle East"],
+    category: "Geographic Combatant Command"
+  },
+  {
+    name: "USNORTHCOM",
+    fullName: "U.S. Northern Command",
+    lat: 38.82, lng: -104.72,
+    desc: "HQ: Peterson SFB, Colorado Springs, CO. AOR covers the continental U.S., Alaska, Canada, Mexico, and surrounding waters. Dual-hatted commander also leads NORAD.",
+    tags: ["Geographic COCOM", "COCOM", "Global", "Arctic"],
+    category: "Geographic Combatant Command"
+  },
+  {
+    name: "USSOUTHCOM",
+    fullName: "U.S. Southern Command",
+    lat: 25.81, lng: -80.36,
+    desc: "HQ: Doral, FL. AOR covers Central America, South America, and the Caribbean — 31 nations. Focuses on counter-narcotics, humanitarian assistance, and partner nation engagement.",
+    tags: ["Geographic COCOM", "COCOM", "South America"],
+    category: "Geographic Combatant Command"
+  }
+];
+
+const funcCocoms = [
+  {
+    name: "USSOCOM",
+    fullName: "U.S. Special Operations Command",
+    lat: 27.86, lng: -82.52,
+    desc: "HQ: MacDill AFB, Tampa, FL. Oversees all special operations forces (Army, Navy, Air Force, Marine). Unique authority to organize, train, equip, and deploy SOF worldwide.",
+    tags: ["Functional COCOM", "COCOM", "SOF", "Global"],
+    category: "Functional Combatant Command"
+  },
+  {
+    name: "USTRANSCOM",
+    fullName: "U.S. Transportation Command",
+    lat: 38.55, lng: -89.85,
+    desc: "HQ: Scott AFB, IL. Provides global air, land, and sea transportation for the DoD. Commands the Air Mobility Command, Military Sealift Command, and Surface Deployment & Distribution Command.",
+    tags: ["Functional COCOM", "COCOM", "Logistics", "Global"],
+    category: "Functional Combatant Command"
+  },
+  {
+    name: "USSTRATCOM",
+    fullName: "U.S. Strategic Command",
+    lat: 41.12, lng: -95.91,
+    desc: "HQ: Offutt AFB, NE. Responsible for strategic deterrence (nuclear triad), global strike, and missile defense integration. Operates the nuclear command, control, and communications (NC3) enterprise.",
+    tags: ["Functional COCOM", "COCOM", "Nuclear", "Global"],
+    category: "Functional Combatant Command"
+  },
+  {
+    name: "USCYBERCOM",
+    fullName: "U.S. Cyber Command",
+    lat: 39.11, lng: -76.77,
+    desc: "HQ: Fort Meade, MD. Directs cyberspace operations to defend DoD networks and conduct full-spectrum cyber operations. Dual-hatted commander also leads NSA.",
+    tags: ["Functional COCOM", "COCOM", "Cyber", "Global"],
+    category: "Functional Combatant Command"
+  },
+  {
+    name: "USSPACECOM",
+    fullName: "U.S. Space Command",
+    lat: 38.83, lng: -104.71,
+    desc: "HQ: Peterson SFB, Colorado Springs, CO. Conducts space operations to deter conflict, deliver space combat power, and defend U.S./allied interests in space. Re-established in 2019.",
+    tags: ["Functional COCOM", "COCOM", "Space", "Global"],
+    category: "Functional Combatant Command"
+  }
+];
+
+const navyFleets = [
+  {
+    name: "U.S. 2nd Fleet",
+    lat: 36.95, lng: -76.30,
+    desc: "HQ: Norfolk, VA. AOR: North Atlantic and Arctic. Re-established 2018 to counter growing Russian naval activity. Supports NATO's Joint Force Command Norfolk.",
+    tags: ["Navy Fleet", "Navy", "Atlantic", "Arctic"],
+    category: "Navy Numbered Fleet"
+  },
+  {
+    name: "U.S. 3rd Fleet",
+    lat: 32.68, lng: -117.15,
+    desc: "HQ: San Diego, CA. AOR: Eastern & North Pacific Ocean from the West Coast to the International Date Line, and from the Arctic to Antarctic.",
+    tags: ["Navy Fleet", "Navy", "Pacific"],
+    category: "Navy Numbered Fleet"
+  },
+  {
+    name: "U.S. 4th Fleet",
+    lat: 30.39, lng: -81.41,
+    desc: "HQ: Mayport, FL. AOR: Caribbean, Central & South American waters. Re-established 2008. Supports USSOUTHCOM counter-narcotics and partner engagement missions.",
+    tags: ["Navy Fleet", "Navy", "South America"],
+    category: "Navy Numbered Fleet"
+  },
+  {
+    name: "U.S. 5th Fleet",
+    lat: 26.23, lng: 50.55,
+    desc: "HQ: NSA Bahrain, Manama. AOR: Persian Gulf, Red Sea, Arabian Sea, and parts of the Indian Ocean (~2.5M sq mi). Manages Combined Maritime Forces with 39+ partner nations.",
+    tags: ["Navy Fleet", "Navy", "Middle East", "SLOCs"],
+    category: "Navy Numbered Fleet"
+  },
+  {
+    name: "U.S. 6th Fleet",
+    lat: 40.84, lng: 14.25,
+    desc: "HQ: Naples, Italy. AOR: Mediterranean Sea, Black Sea, and European coastal waters. Typically operates 40+ ships, including a carrier strike group. Supports USEUCOM.",
+    tags: ["Navy Fleet", "Navy", "Europe", "Atlantic"],
+    category: "Navy Numbered Fleet"
+  },
+  {
+    name: "U.S. 7th Fleet",
+    lat: 35.28, lng: 139.67,
+    desc: "HQ: Yokosuka, Japan. The largest forward-deployed fleet: 50–70 ships, 150 aircraft, 27,000 personnel. AOR: Western Pacific and Indian Ocean (124M sq km spanning 36 nations).",
+    tags: ["Navy Fleet", "Navy", "Indo-Pacific", "Pacific"],
+    category: "Navy Numbered Fleet"
+  },
+  {
+    name: "U.S. 10th Fleet",
+    lat: 39.10, lng: -76.78,
+    desc: "HQ: Fort Meade, MD. The Navy's cyber warfare arm and operational arm of Fleet Cyber Command. Conducts cryptologic and signals intelligence operations globally. No ships — operates in cyberspace.",
+    tags: ["Navy Fleet", "Navy", "Cyber", "Global"],
+    category: "Navy Numbered Fleet"
+  }
+];
+
+const chokepoints = [
+  {
+    name: "Strait of Hormuz",
+    lat: 26.56, lng: 56.25,
+    desc: "Between Iran and Oman/UAE. ~21 mi wide at narrowest. Approximately 20-25% of global oil transits daily (~21M barrels/day). Most strategically significant energy chokepoint on Earth.",
+    tags: ["Chokepoint", "SLOCs", "Energy", "Middle East"],
+    category: "Strategic Chokepoint"
+  },
+  {
+    name: "Strait of Malacca",
+    lat: 2.50, lng: 101.20,
+    desc: "Between Malaysia and Sumatra (Indonesia). ~1.7 mi wide at Phillips Channel. ~25% of global trade transits, including 80% of China's and Japan's oil imports. The world's busiest shipping lane.",
+    tags: ["Chokepoint", "SLOCs", "Trade", "Energy", "Indo-Pacific"],
+    category: "Strategic Chokepoint"
+  },
+  {
+    name: "Bab el-Mandeb",
+    lat: 12.58, lng: 43.33,
+    desc: "Between Yemen and Djibouti/Eritrea. ~18 mi wide. Links the Red Sea to the Gulf of Aden — all Suez Canal traffic must pass through. ~10% of global seaborne trade.",
+    tags: ["Chokepoint", "SLOCs", "Energy", "Trade", "Africa", "Middle East"],
+    category: "Strategic Chokepoint"
+  },
+  {
+    name: "Suez Canal",
+    lat: 30.58, lng: 32.27,
+    desc: "Egypt. 120 mi long, linking Mediterranean to Red Sea. ~12-15% of global trade and 7-10% of seaborne oil. Eliminates the 3,000+ mile detour around the Cape of Good Hope.",
+    tags: ["Chokepoint", "SLOCs", "Trade", "Energy", "Middle East"],
+    category: "Strategic Chokepoint"
+  },
+  {
+    name: "Panama Canal",
+    lat: 9.08, lng: -79.68,
+    desc: "Panama. 50 mi long, linking Atlantic to Pacific. ~5% of global maritime trade and ~40% of U.S. container traffic. Neo-Panamax locks expanded in 2016. Critical for U.S. inter-fleet logistics.",
+    tags: ["Chokepoint", "SLOCs", "Trade", "South America"],
+    category: "Strategic Chokepoint"
+  },
+  {
+    name: "Strait of Gibraltar",
+    lat: 35.97, lng: -5.50,
+    desc: "Between Spain and Morocco. ~8 mi wide at narrowest. Gateway between the Atlantic and Mediterranean. Heavily monitored by U.S. 6th Fleet and NATO allies.",
+    tags: ["Chokepoint", "SLOCs", "Trade", "Europe", "Africa"],
+    category: "Strategic Chokepoint"
+  },
+  {
+    name: "Taiwan Strait",
+    lat: 24.30, lng: 119.50,
+    desc: "Between Taiwan and mainland China. ~100 mi wide. Major flashpoint: ~88% of the world's largest container ships transit annually. Critical to global semiconductor supply chains.",
+    tags: ["Chokepoint", "SLOCs", "Trade", "Indo-Pacific"],
+    category: "Strategic Chokepoint"
+  },
+  {
+    name: "GIUK Gap",
+    lat: 63.50, lng: -15.00,
+    desc: "Greenland–Iceland–UK passage. The primary chokepoint for Russian Northern Fleet access from the Arctic to the North Atlantic. Key Cold War and modern ASW surveillance zone.",
+    tags: ["Chokepoint", "SLOCs", "Atlantic", "Arctic"],
+    category: "Strategic Chokepoint"
+  },
+  {
+    name: "Turkish Straits (Bosphorus & Dardanelles)",
+    lat: 41.12, lng: 29.05,
+    desc: "Turkey. Bosphorus is ~0.5 mi wide at narrowest — one of the world's tightest major waterways. Only passage from the Black Sea to the Mediterranean. Governed by the 1936 Montreux Convention.",
+    tags: ["Chokepoint", "SLOCs", "Europe", "Energy"],
+    category: "Strategic Chokepoint"
+  },
+  {
+    name: "Danish Straits",
+    lat: 55.80, lng: 11.50,
+    desc: "Between Denmark and Sweden/Germany. Links the Baltic Sea to the North Sea. Critical for Russian Baltic Fleet access to the Atlantic. NATO monitors heavily.",
+    tags: ["Chokepoint", "SLOCs", "Europe", "Atlantic"],
+    category: "Strategic Chokepoint"
+  },
+  {
+    name: "Strait of Sunda",
+    lat: -6.10, lng: 105.70,
+    desc: "Between Java and Sumatra, Indonesia. ~15 mi wide. An alternative to the Strait of Malacca for deep-draft vessels and military transit between the Indian and Pacific Oceans.",
+    tags: ["Chokepoint", "SLOCs", "Trade", "Indo-Pacific"],
+    category: "Strategic Chokepoint"
+  },
+  {
+    name: "Strait of Lombok",
+    lat: -8.47, lng: 115.72,
+    desc: "Between Bali and Lombok, Indonesia. ~22 mi wide. Preferred by submarines and supertankers as a Malacca bypass — deeper and less surveilled. Links Indian Ocean to Java Sea.",
+    tags: ["Chokepoint", "SLOCs", "Trade", "Indo-Pacific"],
+    category: "Strategic Chokepoint"
+  },
+  {
+    name: "Mozambique Channel",
+    lat: -17.00, lng: 41.00,
+    desc: "Between Mozambique and Madagascar. ~250 mi wide at narrowest. An alternate route for Cape of Good Hope traffic. Increasingly important as Red Sea disruptions mount.",
+    tags: ["Chokepoint", "SLOCs", "Trade", "Africa"],
+    category: "Strategic Chokepoint"
+  },
+  {
+    name: "Cape of Good Hope",
+    lat: -34.35, lng: 18.47,
+    desc: "Southern tip of Africa. Not a strait, but a critical waypoint when Suez/Red Sea routes are denied. Traffic surged during Houthi disruptions in 2024. Adds ~10 days to Europe–Asia transit.",
+    tags: ["Chokepoint", "SLOCs", "Trade", "Energy", "Africa"],
+    category: "Strategic Chokepoint"
+  }
+];
+
+const intelAgencies = [
+  {
+    name: "ODNI — Office of the Director of National Intelligence",
+    lat: 38.932, lng: -77.205,
+    desc: "HQ: McLean, VA (Liberty Crossing). Established by IRTPA 2004. The IC's head coordinator — the DNI oversees all 18 agencies, sets collection priorities, and manages the National Intelligence Program (NIP) budget (~$72B).",
+    tags: ["Intelligence Community", "IC Program Manager", "Global"],
+    category: "Intelligence Community — Program Manager"
+  },
+  {
+    name: "CIA — Central Intelligence Agency",
+    lat: 38.95, lng: -77.15,
+    desc: "HQ: Langley, VA. The premier HUMINT agency. Collects foreign intelligence, conducts covert action (per presidential finding), and produces all-source analysis. Reports directly to the DNI.",
+    tags: ["Intelligence Community", "IC Program Manager", "Global"],
+    category: "Intelligence Community — Independent Agency"
+  },
+  {
+    name: "NSA — National Security Agency",
+    lat: 39.109, lng: -76.772,
+    desc: "HQ: Fort Meade, MD. The SIGINT giant — intercepts and analyzes foreign communications and electronic signals. Also serves as the nation's lead for cybersecurity (via the Cybersecurity Directorate). Director dual-hatted as USCYBERCOM CDR.",
+    tags: ["Intelligence Community", "DoD", "Cyber", "Global"],
+    category: "Intelligence Community — DoD Agency"
+  },
+  {
+    name: "DIA — Defense Intelligence Agency",
+    lat: 38.844, lng: -77.018,
+    desc: "HQ: Joint Base Anacostia-Bolling, Washington, D.C. The DoD's primary producer of military intelligence analysis. Manages the Defense Attaché System in 140+ countries and runs the Defense Clandestine Service (DCS).",
+    tags: ["Intelligence Community", "DoD", "Global"],
+    category: "Intelligence Community — DoD Agency"
+  },
+  {
+    name: "NGA — National Geospatial-Intelligence Agency",
+    lat: 38.749, lng: -77.176,
+    desc: "HQ: 7500 GEOINT Dr, Springfield, VA (Fort Belvoir North Area). Also maintains NGA Campus West (N2W) in St. Louis, MO. Provides GEOINT — imagery, maps, and geospatial data for military ops and national security.",
+    tags: ["Intelligence Community", "DoD", "Global"],
+    category: "Intelligence Community — DoD Agency"
+  },
+  {
+    name: "NRO — National Reconnaissance Office",
+    lat: 38.955, lng: -77.448,
+    desc: "HQ: Chantilly, VA. Designs, builds, launches, and operates the nation's reconnaissance satellites. Its budget and existence were classified until 1992. Partners with CIA, NSA, NGA, and Space Force.",
+    tags: ["Intelligence Community", "DoD", "Space", "Global"],
+    category: "Intelligence Community — DoD Agency"
+  },
+  {
+    name: "FBI — Intelligence Branch",
+    lat: 38.894, lng: -77.025,
+    desc: "HQ: J. Edgar Hoover Building, Washington, D.C. The only IC member with both intelligence and law enforcement authority on U.S. soil. Leads domestic counterintelligence, counterterrorism, and WMD threat analysis.",
+    tags: ["Intelligence Community", "Law Enforcement", "Homeland Security"],
+    category: "Intelligence Community — Departmental"
+  },
+  {
+    name: "DEA — Intelligence Division",
+    lat: 38.864, lng: -77.058,
+    desc: "HQ: Arlington, VA. Part of the Dept. of Justice. Provides drug-related intelligence, tracks narco-trafficking networks, manages the El Paso Intelligence Center (EPIC), and supports counter-narcotics targeting worldwide.",
+    tags: ["Intelligence Community", "Law Enforcement", "Departmental Intelligence"],
+    category: "Intelligence Community — Departmental"
+  },
+  {
+    name: "DHS — Office of Intelligence & Analysis (I&A)",
+    lat: 38.853, lng: -76.988,
+    desc: "HQ: St. Elizabeths Campus, SE Washington, D.C. The only IC element focused on homeland threats. Connects federal intelligence with state, local, tribal, and private-sector partners via 80 fusion centers nationwide.",
+    tags: ["Intelligence Community", "Homeland Security", "Departmental Intelligence"],
+    category: "Intelligence Community — Departmental"
+  },
+  {
+    name: "State Dept — Bureau of Intelligence & Research (INR)",
+    lat: 38.895, lng: -77.049,
+    desc: "HQ: Harry S. Truman Building, Washington, D.C. The smallest but often highest-accuracy IC element. Provides independent all-source analysis to the Secretary of State. Notable for dissenting on Iraq WMD estimates in 2002.",
+    tags: ["Intelligence Community", "Diplomatic", "Departmental Intelligence"],
+    category: "Intelligence Community — Departmental"
+  },
+  {
+    name: "Treasury — Office of Intelligence & Analysis (OIA)",
+    lat: 38.898, lng: -77.037,
+    desc: "HQ: Treasury Building, Washington, D.C. Tracks terrorist financing, sanctions evasion, money laundering, and illicit financial networks. Supports OFAC designations and FinCEN operations.",
+    tags: ["Intelligence Community", "Departmental Intelligence"],
+    category: "Intelligence Community — Departmental"
+  },
+  {
+    name: "DOE — Office of Intelligence & Counterintelligence (OICI)",
+    lat: 38.886, lng: -77.016,
+    desc: "HQ: Forrestal Building, Washington, D.C. The IC's lead for nuclear weapons intelligence, foreign nuclear programs, and energy security. Draws on the national labs (Los Alamos, Sandia, Livermore, etc.).",
+    tags: ["Intelligence Community", "Nuclear", "Energy", "Departmental Intelligence"],
+    category: "Intelligence Community — Departmental"
+  },
+  {
+    name: "Army Intelligence (G-2 / INSCOM)",
+    lat: 38.719, lng: -77.157,
+    desc: "HQ: Fort Belvoir, VA / INSCOM at Fort Meade. Provides tactical through strategic HUMINT, SIGINT, GEOINT, CI, and OSINT. Operates major subordinate commands worldwide including 500th MI Brigade (Pacific).",
+    tags: ["Intelligence Community", "Military Intelligence", "DoD"],
+    category: "Intelligence Community — Service Intelligence"
+  },
+  {
+    name: "ONI — Office of Naval Intelligence",
+    lat: 38.851, lng: -76.932,
+    desc: "HQ: National Maritime Intelligence Center, Suitland, MD. The oldest continuously operating U.S. intel agency (est. 1882). Provides maritime TECHINT, threat analysis of foreign navies, and support to fleet operations.",
+    tags: ["Intelligence Community", "Military Intelligence", "Navy", "DoD"],
+    category: "Intelligence Community — Service Intelligence"
+  },
+  {
+    name: "Air Force ISR — 16th Air Force (Air Forces Cyber)",
+    lat: 29.38, lng: -98.58,
+    desc: "HQ: Joint Base San Antonio-Lackland, TX. The USAF's information warfare numbered air force. Integrates ISR, cyber, electronic warfare, and information operations under a single command.",
+    tags: ["Intelligence Community", "Military Intelligence", "Cyber", "DoD"],
+    category: "Intelligence Community — Service Intelligence"
+  },
+  {
+    name: "Marine Corps Intelligence Activity (MCIA)",
+    lat: 38.53, lng: -77.30,
+    desc: "HQ: Quantico, VA. Provides all-source intelligence support to the Marine Corps. Focuses on expeditionary, littoral, and amphibious environments. Embedded analysts support MEFs and MEUs globally.",
+    tags: ["Intelligence Community", "Military Intelligence", "DoD"],
+    category: "Intelligence Community — Service Intelligence"
+  },
+  {
+    name: "Space Force Intelligence (S2)",
+    lat: 38.84, lng: -104.73,
+    desc: "HQ: Peterson SFB, Colorado Springs, CO. The newest IC member (joined 2020 with USSF's establishment). Provides intelligence on adversary space capabilities, orbital threats, and space domain awareness.",
+    tags: ["Intelligence Community", "Military Intelligence", "Space", "DoD"],
+    category: "Intelligence Community — Service Intelligence"
+  },
+  {
+    name: "Coast Guard Intelligence (CGI)",
+    lat: 38.854, lng: -76.994,
+    desc: "HQ: St. Elizabeths West Campus, 2703 MLK Jr Ave SE, Washington, D.C. Part of DHS (wartime: DoD). Provides maritime intelligence — port security, maritime domain awareness, counter-narcotics, and migrant interdiction. Unique Title 14 authorities.",
+    tags: ["Intelligence Community", "Military Intelligence", "Homeland Security", "DoD"],
+    category: "Intelligence Community — Service Intelligence"
+  }
+];
+
+// ── Layer Groups ──
+const layers = {
+  'cocom': {},
+  'fleet': {},
+  'chokepoint': {},
+  'intel': {}
+};
+
+function addMarkers(data, icon, groupKey, listId) {
+  const listEl = document.getElementById(listId);
+  data.forEach(d => {
+    const marker = L.marker([d.lat, d.lng], { icon })
+      .bindPopup(buildPopup(d), { maxWidth: 320 })
+      .addTo(map);
+    const id = d.name.replace(/[^a-zA-Z0-9]/g, '_');
+    layers[groupKey][id] = marker;
+
+    // Add to sidebar list
+    const label = document.createElement('label');
+    label.innerHTML = `<input type="checkbox" checked data-group="${groupKey}" data-id="${id}" /> ${d.name}`;
+    listEl.appendChild(label);
+  });
+}
+
+addMarkers(geoCocoms, makeStar('#ff6e40', 18), 'cocom', 'cocom-list');
+addMarkers(funcCocoms, makeStar('#ff6e40', 16), 'cocom', 'cocom-list');
+addMarkers(navyFleets, makeIcon('#4fc3f7', 13), 'fleet', 'fleet-list');
+addMarkers(chokepoints, makeTriangle('#66bb6a', 14), 'chokepoint', 'chokepoint-list');
+addMarkers(intelAgencies, makeIcon('#ce93d8', 11), 'intel', 'intel-list');
+
+// ── COCOM AOR Boundary Overlays ──
+const aorStyles = {
+  USINDOPACOM: { color: '#ff5252', dashArray: '8,6' },
+  USEUCOM:     { color: '#7986cb', dashArray: '8,6' },
+  USCENTCOM:   { color: '#ffa726', dashArray: '8,6' },
+  USAFRICOM:   { color: '#a1887f', dashArray: '8,6' },
+  USNORTHCOM:  { color: '#90caf9', dashArray: '8,6' },
+  USSOUTHCOM:  { color: '#81c784', dashArray: '8,6' }
+};
+
+// Simplified AOR boundary polygons (approximate)
+const aorBounds = {
+  USINDOPACOM: [
+    [90, 68], [90, -180], [90, -125], [33, -125], [10, -125],
+    [-90, -125], [-90, -180], [-90, 68], [-45, 68], [0, 68],
+    [30, 68], [42, 68], [90, 68]
+  ],
+  USEUCOM: [
+    [90, -15], [90, 68], [42, 68], [30, 44], [28, 42],
+    [35, 25], [30, 10], [38, -10], [47, -15], [60, -15], [90, -15]
+  ],
+  USCENTCOM: [
+    [42, 68], [42, 44], [30, 44], [28, 42], [12, 43],
+    [12, 50], [-15, 68], [0, 68], [30, 68], [42, 68]
+  ],
+  USAFRICOM: [
+    [38, -15], [30, 10], [35, 25], [28, 42], [12, 43],
+    [-15, 50], [-15, 68], [-45, 68], [-45, -15], [38, -15]
+  ],
+  USSOUTHCOM: [
+    [20, -45], [20, -100], [10, -100], [10, -125],
+    [-90, -125], [-90, -45], [20, -45]
+  ],
+  USNORTHCOM: [
+    [90, -15], [60, -15], [47, -15], [38, -15],
+    [20, -45], [20, -100], [10, -100], [33, -125],
+    [90, -125], [90, -15]
+  ]
+};
+
+const aorLayers = {};
+Object.keys(aorBounds).forEach(cmd => {
+  const style = aorStyles[cmd] || { color: '#fff', dashArray: '6,4' };
+  aorLayers[cmd] = L.polygon(aorBounds[cmd], {
+    color: style.color,
+    fillColor: style.color,
+    fillOpacity: 0.04,
+    weight: 1.5,
+    dashArray: style.dashArray,
+    interactive: false
+  }).addTo(map);
+});
+
+// ── Checkbox Logic ──
+document.addEventListener('change', function(e) {
+  const el = e.target;
+
+  // Master toggle
+  if (el.dataset.master) {
+    const group = el.dataset.master;
+    const checked = el.checked;
+    document.querySelectorAll(`[data-group="${group}"]`).forEach(cb => {
+      cb.checked = checked;
+      const marker = layers[group][cb.dataset.id];
+      if (marker) { checked ? marker.addTo(map) : map.removeLayer(marker); }
+    });
+    // Toggle AOR for COCOMs
+    if (group === 'cocom') {
+      Object.values(aorLayers).forEach(l => checked ? l.addTo(map) : map.removeLayer(l));
+    }
+    return;
+  }
+
+  // Individual toggle
+  if (el.dataset.group && el.dataset.id) {
+    const marker = layers[el.dataset.group][el.dataset.id];
+    if (marker) { el.checked ? marker.addTo(map) : map.removeLayer(marker); }
+  }
+});
+
+// ── Search ──
+document.getElementById('search-box').addEventListener('input', function() {
+  const q = this.value.toLowerCase().trim();
+  const allCheckboxes = document.querySelectorAll('#control-panel input[data-group]');
+
+  allCheckboxes.forEach(cb => {
+    const lbl = cb.parentElement;
+    const name = lbl.textContent.toLowerCase();
+    if (!q || name.includes(q)) {
+      lbl.style.display = '';
+    } else {
+      lbl.style.display = 'none';
+    }
+  });
+});
+
+// ── Click-to-fly on sidebar items ──
+document.querySelectorAll('#control-panel label:not(.master-toggle)').forEach(label => {
+  label.addEventListener('dblclick', function() {
+    const cb = this.querySelector('input[data-group]');
+    if (!cb) return;
+    const marker = layers[cb.dataset.group]?.[cb.dataset.id];
+    if (marker) {
+      map.flyTo(marker.getLatLng(), 8, { duration: 1.2 });
+      marker.openPopup();
+    }
+  });
+});
+
+// ── Info tooltip ──
+const infoDiv = L.control({position: 'bottomright'});
+infoDiv.onAdd = function() {
+  const div = L.DomUtil.create('div');
+  div.style.cssText = 'background:rgba(10,14,26,0.9);padding:8px 12px;border-radius:8px;border:1px solid #2a3a5c;font-size:11px;color:#8aa4cf;';
+  div.innerHTML = '💡 Double-click sidebar items to fly to location';
+  return div;
+};
+infoDiv.addTo(map);
+</script>
+</body>
+</html>
