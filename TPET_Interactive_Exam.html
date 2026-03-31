@@ -1,0 +1,1507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TPET I Exam - Reserve Naval Intelligence Officers</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --navy: #001f3f;
+            --dark-navy: #000f1f;
+            --light-navy: #00386d;
+            --accent: #0074d9;
+            --gold: #ffb81c;
+            --text-light: #ecf0f1;
+            --text-muted: #bdc3c7;
+            --border: #34495e;
+            --success: #2ecc71;
+            --warning: #f39c12;
+            --danger: #e74c3c;
+            --correct: #27ae60;
+            --incorrect: #c0392b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, var(--dark-navy) 0%, var(--navy) 100%);
+            color: var(--text-light);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 0;
+            border-bottom: 3px solid var(--accent);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: var(--gold);
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+
+        .subtitle {
+            color: var(--text-muted);
+            font-size: 1.1em;
+            margin-bottom: 20px;
+        }
+
+        .exam-stats {
+            display: flex;
+            justify-content: center;
+            gap: 40px;
+            flex-wrap: wrap;
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(0, 116, 217, 0.1);
+            border-radius: 8px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.9em;
+        }
+
+        .stat-value {
+            color: var(--gold);
+            font-size: 1.8em;
+            font-weight: bold;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: var(--light-navy);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 116, 217, 0.4);
+        }
+
+        button.secondary {
+            background: var(--light-navy);
+        }
+
+        button.secondary:hover {
+            background: var(--accent);
+        }
+
+        .section {
+            background: var(--light-navy);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .section-header {
+            background: var(--navy);
+            padding: 20px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--accent);
+            transition: background 0.3s ease;
+        }
+
+        .section-header:hover {
+            background: var(--dark-navy);
+        }
+
+        .section-header h2 {
+            color: var(--gold);
+            font-size: 1.4em;
+            margin: 0;
+        }
+
+        .section-points {
+            color: var(--text-muted);
+            font-size: 0.9em;
+        }
+
+        .toggle-icon {
+            color: var(--accent);
+            font-size: 1.5em;
+            transition: transform 0.3s ease;
+        }
+
+        .section.collapsed .toggle-icon {
+            transform: rotate(-90deg);
+        }
+
+        .section-content {
+            padding: 20px;
+            display: none;
+        }
+
+        .section.expanded .section-content {
+            display: block;
+        }
+
+        .question {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 20px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--accent);
+            border-radius: 5px;
+        }
+
+        .question.answered-correct {
+            border-left-color: var(--correct);
+            background: rgba(46, 204, 113, 0.1);
+        }
+
+        .question.answered-incorrect {
+            border-left-color: var(--incorrect);
+            background: rgba(231, 76, 60, 0.1);
+        }
+
+        .question.answered-partial {
+            border-left-color: var(--warning);
+            background: rgba(243, 156, 18, 0.1);
+        }
+
+        .question-number {
+            color: var(--gold);
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .question-text {
+            color: var(--text-light);
+            margin-bottom: 15px;
+            font-size: 1.05em;
+        }
+
+        .question-points {
+            color: var(--text-muted);
+            font-size: 0.85em;
+            margin-bottom: 10px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border);
+            color: var(--text-light);
+            padding: 10px;
+            border-radius: 5px;
+            font-family: inherit;
+            font-size: 1em;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: var(--accent);
+            background: rgba(0, 116, 217, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .feedback {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 0.9em;
+            display: none;
+        }
+
+        .feedback.show {
+            display: block;
+        }
+
+        .feedback.correct {
+            background: rgba(46, 204, 113, 0.2);
+            color: var(--success);
+            border-left: 3px solid var(--success);
+        }
+
+        .feedback.incorrect {
+            background: rgba(231, 76, 60, 0.2);
+            color: var(--danger);
+            border-left: 3px solid var(--danger);
+        }
+
+        .feedback.partial {
+            background: rgba(243, 156, 18, 0.2);
+            color: var(--warning);
+            border-left: 3px solid var(--warning);
+        }
+
+        .map-container {
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        #mapDiv {
+            height: 600px;
+            width: 100%;
+        }
+
+        .map-instruction {
+            color: var(--text-muted);
+            font-size: 0.9em;
+            margin-bottom: 10px;
+            padding: 10px;
+            background: rgba(0, 0, 0, 0.2);
+            border-left: 3px solid var(--accent);
+            border-radius: 3px;
+        }
+
+        .classification-exercise {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+        }
+
+        .classification-field {
+            margin-bottom: 15px;
+        }
+
+        .classification-field label {
+            display: block;
+            color: var(--text-muted);
+            font-size: 0.9em;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .classification-field input {
+            width: 100%;
+        }
+
+        .results-panel {
+            display: none;
+            background: var(--navy);
+            border: 2px solid var(--accent);
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .results-panel.show {
+            display: block;
+        }
+
+        .results-title {
+            color: var(--gold);
+            font-size: 2em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .score-display {
+            font-size: 3em;
+            font-weight: bold;
+            color: var(--gold);
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .score-breakdown {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .category-score {
+            background: rgba(0, 116, 217, 0.1);
+            padding: 20px;
+            border-left: 4px solid var(--accent);
+            border-radius: 5px;
+        }
+
+        .category-name {
+            color: var(--gold);
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .category-score-value {
+            font-size: 1.8em;
+            color: var(--text-light);
+            margin-bottom: 5px;
+        }
+
+        .category-percentage {
+            color: var(--text-muted);
+            font-size: 0.9em;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 4px;
+            margin-top: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent), var(--gold));
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+
+        .help-text {
+            color: var(--text-muted);
+            font-size: 0.85em;
+            margin-top: 5px;
+            font-style: italic;
+        }
+
+        .acronym-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .acronym-item {
+            background: rgba(0, 0, 0, 0.2);
+            padding: 15px;
+            border-radius: 5px;
+            border-left: 3px solid var(--accent);
+        }
+
+        .acronym-label {
+            color: var(--text-muted);
+            font-size: 0.9em;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .acronym-input {
+            width: 100%;
+        }
+
+        .map-legend {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+
+        .map-legend-title {
+            color: var(--gold);
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .map-legend-item {
+            color: var(--text-muted);
+            margin-bottom: 5px;
+        }
+
+        .check-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 6px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85em;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            margin-top: 5px;
+        }
+
+        .check-btn:hover {
+            background: var(--gold);
+            color: var(--dark-navy);
+        }
+
+        .section-check-btn {
+            background: var(--gold);
+            color: var(--dark-navy);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.95em;
+            font-weight: 700;
+            margin: 15px 0 5px 0;
+            transition: all 0.2s ease;
+        }
+
+        .section-check-btn:hover {
+            background: var(--accent);
+            color: white;
+        }
+
+        .section-score-banner {
+            background: rgba(0, 116, 217, 0.15);
+            border: 1px solid var(--accent);
+            border-radius: 5px;
+            padding: 12px 20px;
+            margin: 10px 0 15px 0;
+            display: none;
+            font-size: 1em;
+        }
+
+        .section-score-banner.show {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .section-score-banner .score-text {
+            color: var(--gold);
+            font-weight: bold;
+            font-size: 1.15em;
+        }
+
+        .section-score-banner .pct-text {
+            color: var(--text-muted);
+        }
+
+        .performance-panel {
+            display: none;
+            background: var(--navy);
+            border: 2px solid var(--gold);
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .performance-panel.show {
+            display: block;
+        }
+
+        .performance-title {
+            color: var(--gold);
+            font-size: 1.6em;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .attempt-row {
+            display: grid;
+            grid-template-columns: 60px 1fr 80px 80px;
+            gap: 10px;
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border);
+            align-items: center;
+            font-size: 0.95em;
+        }
+
+        .attempt-row.header {
+            color: var(--gold);
+            font-weight: bold;
+            border-bottom: 2px solid var(--accent);
+        }
+
+        .attempt-row .pct {
+            text-align: right;
+        }
+
+        .trend-indicator {
+            font-size: 1.2em;
+        }
+
+        .study-report {
+            display: none;
+            background: var(--navy);
+            border: 2px solid var(--danger);
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .study-report.show {
+            display: block;
+        }
+
+        .study-report-title {
+            color: var(--danger);
+            font-size: 1.6em;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .study-area {
+            background: rgba(231, 76, 60, 0.1);
+            border-left: 4px solid var(--danger);
+            padding: 15px;
+            margin-bottom: 12px;
+            border-radius: 0 5px 5px 0;
+        }
+
+        .study-area-title {
+            color: var(--gold);
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 1.05em;
+        }
+
+        .study-area-items {
+            color: var(--text-muted);
+            font-size: 0.92em;
+            line-height: 1.7;
+        }
+
+        .study-area-items .missed-q {
+            padding: 4px 0;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .study-area-items .missed-q:last-child {
+            border-bottom: none;
+        }
+
+        .study-area-items .correct-answer {
+            color: var(--success);
+            font-weight: 600;
+        }
+
+        .footer {
+            text-align: center;
+            color: var(--text-muted);
+            padding: 20px;
+            border-top: 1px solid var(--border);
+            margin-top: 40px;
+        }
+
+        @media print {
+            body {
+                background: white;
+                color: black;
+            }
+
+            .controls, .results-panel {
+                display: none;
+            }
+
+            .section {
+                page-break-inside: avoid;
+                border: 1px solid #ccc;
+            }
+
+            .section-content {
+                display: block !important;
+            }
+
+            .question {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>TPET I EXAMINATION</h1>
+            <p class="subtitle">Reserve Naval Intelligence Officers</p>
+            <div class="exam-stats">
+                <div class="stat-item">
+                    <div class="stat-label">Total Questions</div>
+                    <div class="stat-value" id="totalQuestions">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Total Points</div>
+                    <div class="stat-value" id="totalPoints">0</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-label">Answered</div>
+                    <div class="stat-value" id="answeredCount">0</div>
+                </div>
+            </div>
+        </header>
+
+        <div class="controls">
+            <button onclick="window.examSystem.gradeExam()">Submit & Grade Full Exam</button>
+            <button class="secondary" onclick="window.examSystem.togglePerformance()">Performance History</button>
+            <button class="secondary" onclick="window.examSystem.resetExam()">Reset All Answers</button>
+            <button class="secondary" onclick="window.print()">Print Exam</button>
+        </div>
+
+        <div class="performance-panel" id="performancePanel">
+            <div class="performance-title">Performance History</div>
+            <div id="performanceContent"><p style="color:var(--text-muted);text-align:center;">No attempts recorded yet.</p></div>
+            <div style="text-align:center;margin-top:15px;">
+                <button class="secondary" onclick="window.examSystem.clearHistory()">Clear History</button>
+                <button class="secondary" onclick="document.getElementById('performancePanel').classList.remove('show')">Close</button>
+            </div>
+        </div>
+
+        <div class="study-report" id="studyReport">
+            <div class="study-report-title">Study Report: Areas for Improvement</div>
+            <div id="studyReportContent"></div>
+            <div style="text-align:center;margin-top:15px;">
+                <button class="secondary" onclick="document.getElementById('studyReport').classList.remove('show')">Close Report</button>
+            </div>
+        </div>
+
+        <div class="results-panel" id="resultsPanel">
+            <div class="results-title">Exam Results</div>
+            <div class="score-display" id="scoreDisplay">0 / 120</div>
+            <div class="score-breakdown" id="scoreBreakdown"></div>
+            <div style="text-align: center;">
+                <p style="color: var(--text-muted); margin-bottom: 20px;">
+                    <span id="performanceMessage"></span>
+                </p>
+                <button onclick="window.examSystem.generateStudyReport()">Generate Study Report</button>
+                <button class="secondary" onclick="location.reload();">Start Over</button>
+                <button class="secondary" onclick="document.getElementById('resultsPanel').classList.remove('show'); window.scrollTo(0, 0);">Close Results</button>
+            </div>
+        </div>
+
+        <div id="examContainer"></div>
+
+        <div class="footer">
+            <p>TPET I Examination | Intelligence Community Study Materials</p>
+            <p>Use of this examination is restricted to authorized personnel only</p>
+        </div>
+    </div>
+
+    <script>
+        const examSections = [
+            {
+                id: 'fundamentals',
+                title: 'Intelligence Fundamentals',
+                category: 'Intelligence Fundamentals',
+                maxPoints: 30,
+                questions: [
+                    { id: 'f1', type: 'fill', text: 'Define intelligence per JP 1-02/JP 2-01 as the product resulting from _____, collection, processing/exploitation, analysis/production, dissemination/integration, and evaluation/feedback.', answer: ['planning and direction', 'planning & direction'], points: 1, hint: 'First phase of intelligence cycle' },
+                    { id: 'f2', type: 'fill', text: 'List the 6 phases of the intelligence cycle, starting with Planning & Direction.', answer: ['planning & direction, collection, processing & exploitation, analysis & production, dissemination & integration, evaluation & feedback', 'planning and direction, collection, processing and exploitation, analysis and production, dissemination and integration, evaluation and feedback'], points: 2, hint: 'Include all 6 phases in order' },
+                    { id: 'f3', type: 'fill', text: 'A CCIR (Commanders Critical Information Requirement) is validated at what command level?', answer: ['combatant command', 'combatant commands', 'cocom'], points: 1 },
+                    { id: 'f4', type: 'fill', text: 'What acronym represents a specific intelligence need that supports decision making?', answer: ['pir', 'priority intelligence requirement'], points: 1 },
+                    { id: 'f5', type: 'fill', text: 'An EEI is an _____ _____ _____ that must be answered to satisfy a PIR.', answer: ['essential element of information', 'essential elements of information'], points: 1 },
+                    { id: 'f6', type: 'fill', text: 'Friendly Force Information Requirement (FFIR) relates to _____ information about friendly forces.', answer: ['intelligence', 'intel'], points: 1 },
+                    { id: 'f7', type: 'fill', text: 'The 7 Principles of Intelligence are Anticipation, Continuous, Responsive, Relevant, Accurate, Timely, and _____. Use acronym ACRRATO.', answer: ['objective'], points: 1, hint: 'The O in ACRRATO' },
+                    { id: 'f8', type: 'fill', text: 'ICD 203 establishes how many Analytic Standards?', answer: ['9'], points: 1 },
+                    { id: 'f9', type: 'short', text: 'Explain the purpose of Analysis of Competing Hypotheses (ACH) as a structured analytic technique.', answer: ['systematically', 'hypothesis', 'alternative', 'evidence'], points: 2, hint: 'Focus on how it tests competing theories' },
+                    { id: 'f10', type: 'fill', text: 'Executive Order 13526 establishes three classification levels. List them from highest to lowest.', answer: ['top secret, secret, confidential', 'ts, s, c'], points: 2 },
+                    { id: 'f11', type: 'fill', text: 'A US Person under EO 12333 includes US citizens and _____ _____.', answer: ['lawful permanent residents', 'lprs', 'legal permanent residents'], points: 1 },
+                    { id: 'f12', type: 'fill', text: 'The DNI (Director of National Intelligence) leads the _____ _____.', answer: ['intelligence community', 'ic'], points: 1 },
+                    { id: 'f13', type: 'fill', text: 'How many Combatant Commands exist? Provide total number.', answer: ['11'], points: 1 },
+                    { id: 'f14', type: 'fill', text: 'Name 3 of the 6 geographic Combatant Commands.', answer: ['northcom', 'southcom', 'eucom', 'africom', 'centcom', 'indopacom'], points: 1, hint: 'E.g., NORTHCOM, CENTCOM, INDOPACOM' },
+                    { id: 'f15', type: 'fill', text: 'The Goldwater-Nichols Act was passed in what year?', answer: ['1986'], points: 1 },
+                    { id: 'f16', type: 'fill', text: 'How many intelligence agencies comprise the Intelligence Community?', answer: ['18'], points: 1 },
+                    { id: 'f17', type: 'fill', text: 'Identify 3 of the 11 IC agencies: CIA, DIA, NSA, NGA, NRO, FBI, DEA, DHS I&A, Treasury, State/INR, or Energy.', answer: ['cia', 'dia', 'nsa', 'nga', 'nro', 'fbi', 'dea', 'dhs', 'treasury', 'state', 'energy'], points: 1, hint: '3 of the 11' },
+                    { id: 'f18', type: 'fill', text: 'Information Operations includes 5 core capabilities. Name them: MILDEC, _____, OPSEC, EW, and _____.', answer: ['miso', 'cyberspace operations'], points: 2, hint: 'MISO and Cyberspace Operations' },
+                    { id: 'f19', type: 'fill', text: 'OPSEC (Operational Security) employs a 5-step process. The first step is to identify _____.', answer: ['critical information', 'critical info'], points: 1 },
+                    { id: 'f20', type: 'fill', text: 'What does MILDEC stand for?', answer: ['military deception', 'mil deception'], points: 1 },
+                    { id: 'f21', type: 'fill', text: 'EMCON Level _____ allows no emissions.', answer: ['alpha'], points: 1 },
+                    { id: 'f22', type: 'fill', text: 'INFOCON Level _____ represents no threat; Level _____ represents successful attack with definite effect.', answer: ['5', '1'], points: 1 },
+                    { id: 'f23', type: 'short', text: 'What are the three dimensions of the Information Environment? Name all three.', answer: ['physical', 'cognitive', 'informational'], points: 2 },
+                    { id: 'f24', type: 'fill', text: 'EW (Electronic Warfare) subdivisions: EA (Electronic Attack), EP (Electronic _____ ), ES (Electronic Warfare Support).', answer: ['protect', 'protection'], points: 1 },
+                    { id: 'f25', type: 'fill', text: 'The NSC (National Security Council) is chaired by the _____.', answer: ['president'], points: 1 },
+                ]
+            },
+            {
+                id: 'disciplines',
+                title: 'Intelligence Disciplines',
+                category: 'Intelligence Disciplines',
+                maxPoints: 25,
+                questions: [
+                    { id: 'd1', type: 'fill', text: 'There are 5 intelligence disciplines. Name them: HUMINT, SIGINT, _____, MASINT, and OSINT.', answer: ['geoint'], points: 1, hint: 'Geospatial Intelligence' },
+                    { id: 'd2', type: 'fill', text: 'HUMINT stands for _____ _____.', answer: ['human intelligence'], points: 1 },
+                    { id: 'd3', type: 'fill', text: 'SIGINT (Signals Intelligence) has 3 subcategories: COMINT, ELINT, and _____.', answer: ['fisint'], points: 1 },
+                    { id: 'd4', type: 'fill', text: 'COMINT focuses on voice, text, and _____ communications.', answer: ['signaling', 'signal'], points: 1 },
+                    { id: 'd5', type: 'fill', text: 'The NSA is the _____ _____ for SIGINT.', answer: ['sigint functional manager', 'functional manager'], points: 1 },
+                    { id: 'd6', type: 'fill', text: 'MASINT has 6 disciplines. Name any 3: Geophysical, Radar, _____, Radio Frequency, Nuclear, Materials.', answer: ['electro-optical', 'electrooptical'], points: 1 },
+                    { id: 'd7', type: 'fill', text: 'DIA is the Functional Manager for _____.', answer: ['masint'], points: 1 },
+                    { id: 'd8', type: 'fill', text: 'GEOINT is managed by which agency?', answer: ['nga', 'national geospatial-intelligence agency'], points: 1 },
+                    { id: 'd9', type: 'fill', text: 'OSINT includes two subcategories: PAI and _____.', answer: ['cai'], points: 1, hint: 'Computer-Assisted Intelligence' },
+                    { id: 'd10', type: 'fill', text: 'The CIA office responsible for open source is the Open Source _____.', answer: ['enterprise'], points: 1 },
+                    { id: 'd11', type: 'short', text: 'Explain one advantage and one disadvantage of OSINT.', answer: ['advantage', 'disadvantage', 'deception', 'bias', 'gap', 'fill'], points: 2 },
+                    { id: 'd12', type: 'fill', text: 'HUMINT advantages include timeliness, cost effectiveness, provides _____, and validates other INTs.', answer: ['intent'], points: 1 },
+                    { id: 'd13', type: 'fill', text: 'The CIA is designated as the _____ _____ for HUMINT.', answer: ['national humint manager', 'humint manager'], points: 1 },
+                    { id: 'd14', type: 'fill', text: 'IIR stands for _____ _____ _____.', answer: ['intelligence information report'], points: 1 },
+                    { id: 'd15', type: 'fill', text: 'The CHROME reporting system is used for _____ reporting.', answer: ['humint'], points: 1 },
+                    { id: 'd16', type: 'fill', text: 'ACINT (Acoustic Intelligence) is a MASINT subdiscipline used to detect _____.', answer: ['submarines'], points: 1 },
+                    { id: 'd17', type: 'fill', text: 'Radio frequencies: ELF (submarine comms), VLF (submarine at _____ meters depth), LF (fleet broadcast).', answer: ['20', '20m'], points: 1 },
+                    { id: 'd18', type: 'fill', text: 'VHF and UHF radio frequencies are used for _____ communications.', answer: ['short range', 'tactical', 'tactical voice'], points: 1 },
+                    { id: 'd19', type: 'fill', text: 'Electromagnetic wave terminology: the _____ is the distance between consecutive wave peaks.', answer: ['wavelength'], points: 1 },
+                    { id: 'd20', type: 'fill', text: 'When an EM wave bounces off a surface, it undergoes _____.', answer: ['reflection'], points: 1 },
+                    { id: 'd21', type: 'short', text: 'Explain the relationship between frequency and wavelength for electromagnetic radiation.', answer: ['inverse', 'frequency', 'wavelength', 'speed'], points: 2 },
+                    { id: 'd22', type: 'fill', text: 'All-source intelligence integrates data from _____ _____.', answer: ['multiple disciplines', 'all disciplines'], points: 1 },
+                    { id: 'd23', type: 'fill', text: 'Counterintelligence activities include Analysis & Production, Collection, Functional Services, Investigations, and _____.', answer: ['operations'], points: 1 },
+                    { id: 'd24', type: 'fill', text: 'SIGINT cares about message _____, while MASINT cares about signal _____.', answer: ['content', 'signature'], points: 1 },
+                    { id: 'd25', type: 'fill', text: 'List 3 SIGINT collection platforms or systems.', answer: ['p8a', 'an/slq-32', 'an/blq-10', 'an/alq-240'], points: 1, hint: 'E.g., P-8A Poseidon, AN/SLQ-32' },
+                ]
+            },
+            {
+                id: 'naval',
+                title: 'Naval Intelligence',
+                category: 'Naval Intelligence',
+                maxPoints: 20,
+                questions: [
+                    { id: 'n1', type: 'fill', text: 'Naval Intelligence Warfare Community officer designation: _____ series.', answer: ['1800'], points: 1 },
+                    { id: 'n2', type: 'fill', text: 'In the Carrier Air Wing (CVW), the main fighter is the _____.', answer: ['f/a-18e/f', 'super hornet', 'fa-18'], points: 1 },
+                    { id: 'n3', type: 'fill', text: 'The Carrier Strike Group (CSG) consists of 1 CVN, 1 CG, 2-3 DDG, 1-2 _____, CVW, and 1 Logistics Ship.', answer: ['ssn'], points: 1, hint: 'Nuclear submarine' },
+                    { id: 'n4', type: 'fill', text: 'CVIC stands for _____ _____ _____.', answer: ['carrier intelligence center'], points: 1 },
+                    { id: 'n5', type: 'fill', text: 'SSES stands for Ship\'s _____ _____ _____.', answer: ['signal exploitation space'], points: 1 },
+                    { id: 'n6', type: 'fill', text: 'The ESG (Expeditionary Strike Group) consists of 1 LHA/LHD, 2 DDG, 1 LPD, 1 LSD, and 1 _____.', answer: ['logistics ship', 'tao', 'tak-e'], points: 1 },
+                    { id: 'n7', type: 'fill', text: 'JIC stands for _____ _____ _____.', answer: ['joint intelligence center'], points: 1 },
+                    { id: 'n8', type: 'fill', text: 'EXPLOT (Expeditionary Plot) monitors _____, _____, and _____ 24 hours.', answer: ['sigint', 'imint', 'humint'], points: 1 },
+                    { id: 'n9', type: 'fill', text: 'LHA (Amphibious Assault Ship) displacement is approximately _____ tons.', answer: ['45000', '45,000'], points: 1 },
+                    { id: 'n10', type: 'fill', text: 'The E-2D Hawkeye is used for AEW (Airborne Early Warning) and _____.', answer: ['c2', 'command and control'], points: 1 },
+                    { id: 'n11', type: 'fill', text: 'The P-8A Poseidon is a primary maritime ISR and _____ platform.', answer: ['asw', 'anti-submarine warfare'], points: 1 },
+                    { id: 'n12', type: 'fill', text: 'The EA-18G Growler is the Navy\'s _____ aircraft.', answer: ['electronic warfare', 'ew'], points: 1 },
+                    { id: 'n13', type: 'fill', text: 'The U.S. Navy has _____ numbered fleets, numbered 2-7 and 10.', answer: ['7'], points: 1 },
+                    { id: 'n14', type: 'fill', text: '2nd Fleet homeport: _____; 7th Fleet homeport: _____.', answer: ['norfolk', 'yokosuka'], points: 1 },
+                    { id: 'n15', type: 'fill', text: 'DCGS-N stands for _____ _____ _____ _____.', answer: ['distributed common ground system-navy'], points: 1 },
+                    { id: 'n16', type: 'fill', text: 'GCCS stands for _____ _____ _____ _____.', answer: ['global command and control system'], points: 1 },
+                    { id: 'n17', type: 'short', text: 'Describe the composition of a Marine Expeditionary Unit (MEU) including its four elements.', answer: ['command element', 'gce', 'ground combat element', 'ace', 'air combat element', 'lce'], points: 2 },
+                    { id: 'n18', type: 'fill', text: 'LEO (Low Earth Orbit) satellites provide _____ coverage with _____ dwell time.', answer: ['limited', 'short'], points: 1 },
+                    { id: 'n19', type: 'fill', text: 'GEO (Geosynchronous Earth Orbit) satellites provide _____ viewing of a location.', answer: ['constant'], points: 1 },
+                    { id: 'n20', type: 'fill', text: 'SIPRNET is classified at _____ level.', answer: ['secret'], points: 1 },
+                ]
+            },
+            {
+                id: 'warfare',
+                title: 'Warfare Fundamentals',
+                category: 'Warfare Fundamentals',
+                maxPoints: 15,
+                questions: [
+                    { id: 'w1', type: 'short', text: 'Define Expeditionary Warfare in the context of naval operations.', answer: ['military operations', 'foreign territory', 'foreign waters', 'established bases'], points: 2 },
+                    { id: 'w2', type: 'fill', text: 'NECC stands for _____ _____ _____ _____.', answer: ['naval expeditionary combat command'], points: 1 },
+                    { id: 'w3', type: 'fill', text: 'Name 3 components of NECC.', answer: ['eod', 'navelsg', 'neic', 'ncf', 'ewdc'], points: 1, hint: 'EOD, NAVELSG, NEIC, NCF, or EWDC' },
+                    { id: 'w4', type: 'fill', text: 'NEO (Noncombatant Evacuation Operation) potential evacuees are reported annually on what date?', answer: ['1 january', 'january 1', '1 jan'], points: 1 },
+                    { id: 'w5', type: 'fill', text: 'What is the annual NEO report called?', answer: ['f-77'], points: 1 },
+                    { id: 'w6', type: 'fill', text: 'The 5 phases of amphibious operations are: Planning, Embarkation, Rehearsal, Movement, and _____.', answer: ['action'], points: 1 },
+                    { id: 'w7', type: 'fill', text: 'CATF stands for _____ _____ _____.', answer: ['commander amphibious task force'], points: 1 },
+                    { id: 'w8', type: 'fill', text: 'CLF stands for _____ _____.', answer: ['commander landing force'], points: 1 },
+                    { id: 'w9', type: 'short', text: 'Define insurgency in military terms.', answer: ['overthrow', 'government', 'subversion', 'armed conflict'], points: 2 },
+                    { id: 'w10', type: 'fill', text: 'In COIN (Counterinsurgency), intelligence supports understanding of the _____, host nation, and insurgents.', answer: ['populace', 'operational environment'], points: 1 },
+                    { id: 'w11', type: 'fill', text: 'Name 3 ESG (Expeditionary Strike Group) missions.', answer: ['amphibious operations', 'neo', 'ha/dr', 'afsb', 'littoral operations', 'tsc', 'mio'], points: 1, hint: 'E.g., Amphibious ops, NEO, HA/DR' },
+                    { id: 'w12', type: 'fill', text: 'MAGTF stands for _____ _____ _____ _____.', answer: ['marine air-ground task force'], points: 1 },
+                    { id: 'w13', type: 'fill', text: 'Mitigation strategies include Containment, Deterrence, and _____.', answer: ['compellence'], points: 1 },
+                    { id: 'w14', type: 'fill', text: 'BDA stands for _____ _____ _____.', answer: ['battle damage assessment'], points: 1 },
+                    { id: 'w15', type: 'fill', text: 'IUSS stands for _____ _____ _____ _____.', answer: ['integrated undersea surveillance system'], points: 1 },
+                ]
+            },
+            {
+                id: 'acronyms',
+                title: 'Acronym Mastery',
+                category: 'Acronyms',
+                maxPoints: 10,
+                questions: [
+                    { id: 'a1', type: 'fill', text: 'CCIR:', answer: ['commander\'s critical information requirement', 'commanders critical information requirement'], points: 0.5 },
+                    { id: 'a2', type: 'fill', text: 'PIR:', answer: ['priority intelligence requirement'], points: 0.5 },
+                    { id: 'a3', type: 'fill', text: 'EEI:', answer: ['essential element of information'], points: 0.5 },
+                    { id: 'a4', type: 'fill', text: 'FFIR:', answer: ['friendly force information requirement'], points: 0.5 },
+                    { id: 'a5', type: 'fill', text: 'ICD:', answer: ['intelligence community directive'], points: 0.5 },
+                    { id: 'a6', type: 'fill', text: 'ACH:', answer: ['analysis of competing hypotheses'], points: 0.5 },
+                    { id: 'a7', type: 'fill', text: 'HUMINT:', answer: ['human intelligence'], points: 0.5 },
+                    { id: 'a8', type: 'fill', text: 'SIGINT:', answer: ['signals intelligence'], points: 0.5 },
+                    { id: 'a9', type: 'fill', text: 'GEOINT:', answer: ['geospatial intelligence'], points: 0.5 },
+                    { id: 'a10', type: 'fill', text: 'MASINT:', answer: ['measurement and signature intelligence'], points: 0.5 },
+                    { id: 'a11', type: 'fill', text: 'OSINT:', answer: ['open source intelligence'], points: 0.5 },
+                    { id: 'a12', type: 'fill', text: 'COMINT:', answer: ['communications intelligence'], points: 0.5 },
+                    { id: 'a13', type: 'fill', text: 'ELINT:', answer: ['electronic intelligence'], points: 0.5 },
+                    { id: 'a14', type: 'fill', text: 'FISINT:', answer: ['foreign instrumentation signals intelligence'], points: 0.5 },
+                    { id: 'a15', type: 'fill', text: 'CSG:', answer: ['carrier strike group'], points: 0.5 },
+                    { id: 'a16', type: 'fill', text: 'ESG:', answer: ['expeditionary strike group'], points: 0.5 },
+                    { id: 'a17', type: 'fill', text: 'MEU:', answer: ['marine expeditionary unit'], points: 0.5 },
+                    { id: 'a18', type: 'fill', text: 'MILDEC:', answer: ['military deception'], points: 0.5 },
+                    { id: 'a19', type: 'fill', text: 'OPSEC:', answer: ['operational security'], points: 0.5 },
+                    { id: 'a20', type: 'fill', text: 'COIN:', answer: ['counterinsurgency'], points: 0.5 },
+                ]
+            },
+            {
+                id: 'geography',
+                title: 'Maritime Geography & Strategic Chokepoints',
+                category: 'Geography',
+                maxPoints: 20,
+                questions: [
+                    { id: 'g0', type: 'map', text: 'Interactive Maritime Chokepoints Map: Identify the 10 key maritime chokepoints by clicking on each marker and typing the location name.', points: 10 },
+                    { id: 'g1', type: 'fill', text: 'The Strait of Hormuz is located between Iran and _____.', answer: ['oman'], points: 1 },
+                    { id: 'g2', type: 'fill', text: 'The Strait of Malacca connects the Indian Ocean and _____ Ocean.', answer: ['pacific'], points: 1 },
+                    { id: 'g3', type: 'fill', text: 'Bab-el-Mandeb connects the Red Sea to the _____ _____ _____.', answer: ['gulf of aden'], points: 1 },
+                    { id: 'g4', type: 'fill', text: 'The Turkish Straits consist of the Bosporus and _____.', answer: ['dardanelles'], points: 1 },
+                    { id: 'g5', type: 'fill', text: 'The Panama Canal connects the Atlantic and _____ Oceans.', answer: ['pacific'], points: 1 },
+                    { id: 'g6', type: 'fill', text: 'The Suez Canal connects the Mediterranean Sea to the _____ _____.', answer: ['red sea'], points: 1 },
+                    { id: 'g7', type: 'fill', text: 'The Strait of Gibraltar separates Spain from _____.', answer: ['morocco'], points: 1 },
+                    { id: 'g8', type: 'fill', text: 'The Denmark Strait (Danish Straits) lies between Greenland and _____.', answer: ['iceland'], points: 1 },
+                    { id: 'g9', type: 'fill', text: 'The Korea Strait separates North/South Korea from _____.', answer: ['japan'], points: 1 },
+                    { id: 'g10', type: 'fill', text: 'The Luzon Strait separates the Philippines from _____.', answer: ['taiwan'], points: 1 },
+                    { id: 'g11', type: 'fill', text: 'NORTHCOM AOR includes the Gulf of Mexico and _____ _____.', answer: ['bering strait'], points: 1 },
+                    { id: 'g12', type: 'fill', text: 'INDOPACOM AOR includes South China Sea and _____ _____.', answer: ['taiwan strait'], points: 1 },
+                ]
+            },
+            {
+                id: 'classification',
+                title: 'Classification Marking Exercise',
+                category: 'Intelligence Fundamentals',
+                maxPoints: 3,
+                questions: [
+                    { id: 'c1', type: 'classification', text: 'Draft a proper classified document header with: (1) Banner line marking (e.g., SECRET//NOFORN), (2) Portion marking format (e.g., (U)(S)), and (3) Classification authority block.', points: 3, hint: 'Banner: CLASSIFICATION//CAVEATS; Portion: (U) or (S); Authority: Original/Derivative' },
+                ]
+            }
+        ];
+
+        class ExamSystem {
+            constructor() {
+                this.answers = {};
+                this.mapAnswers = {};
+                this.lastGradeResults = null;
+                this.init();
+            }
+
+            init() {
+                this.renderExam();
+                this.updateStats();
+            }
+
+            renderExam() {
+                const container = document.getElementById('examContainer');
+                container.innerHTML = '';
+
+                let totalQuestions = 0;
+                let totalPoints = 0;
+
+                examSections.forEach(section => {
+                    totalQuestions += section.questions.length;
+                    totalPoints += section.maxPoints;
+
+                    const sectionEl = document.createElement('div');
+                    sectionEl.className = 'section expanded';
+                    sectionEl.id = `section-${section.id}`;
+
+                    const headerEl = document.createElement('div');
+                    headerEl.className = 'section-header';
+                    headerEl.innerHTML = `<div><h2>${section.title}</h2><span class="section-points">${section.maxPoints} points</span></div><span class="toggle-icon">▾</span>`;
+                    headerEl.onclick = () => this.toggleSection(section.id);
+
+                    const contentEl = document.createElement('div');
+                    contentEl.className = 'section-content';
+
+                    /* Section score banner */
+                    const scoreBanner = document.createElement('div');
+                    scoreBanner.className = 'section-score-banner';
+                    scoreBanner.id = `section-score-${section.id}`;
+                    contentEl.appendChild(scoreBanner);
+
+                    section.questions.forEach(q => {
+                        contentEl.appendChild(this.renderQuestion(q, section.id));
+                    });
+
+                    /* Check Section button */
+                    const checkSectionBtn = document.createElement('button');
+                    checkSectionBtn.className = 'section-check-btn';
+                    checkSectionBtn.textContent = `Check ${section.title}`;
+                    checkSectionBtn.onclick = () => this.gradeSection(section.id);
+                    contentEl.appendChild(checkSectionBtn);
+
+                    sectionEl.appendChild(headerEl);
+                    sectionEl.appendChild(contentEl);
+                    container.appendChild(sectionEl);
+                });
+
+                document.getElementById('totalQuestions').textContent = totalQuestions;
+                document.getElementById('totalPoints').textContent = totalPoints;
+            }
+
+            renderQuestion(question, sectionId) {
+                const qEl = document.createElement('div');
+                qEl.className = 'question';
+                qEl.id = `question-${question.id}`;
+
+                if (question.type === 'map') {
+                    qEl.innerHTML = `
+                        <div class="question-number">Map Question</div>
+                        <div class="question-text">${question.text}</div>
+                        <div class="question-points">${question.points} points</div>
+                        <div class="map-instruction">Enter the name of each numbered chokepoint in the grid below. Use the map to identify locations.</div>
+                        <div class="map-container"><div id="mapDiv"></div></div>
+                        <div id="mapAnswerInput" style="margin-top: 15px;"></div>
+                        <div class="feedback" id="feedback-${question.id}"></div>
+                    `;
+                    setTimeout(() => {
+                        this.initializeMap();
+                        this.renderMapGrid();
+                    }, 100);
+                } else if (question.type === 'classification') {
+                    qEl.innerHTML = `
+                        <div class="question-number">Question: Classification Marking</div>
+                        <div class="question-text">${question.text}</div>
+                        <div class="question-points">${question.points} points</div>
+                        <div class="classification-exercise">
+                            <div class="classification-field">
+                                <label>Banner Line (e.g., SECRET//NOFORN):</label>
+                                <input type="text" id="class_banner_${question.id}" placeholder="CLASSIFICATION//CAVEATS" data-type="banner">
+                            </div>
+                            <div class="classification-field">
+                                <label>Portion Marking Format (e.g., (U)(S)):</label>
+                                <input type="text" id="class_portion_${question.id}" placeholder="(U) (S) etc." data-type="portion">
+                            </div>
+                            <div class="classification-field">
+                                <label>Classification Authority Block:</label>
+                                <textarea id="class_auth_${question.id}" placeholder="Authority: Original or Derivative&#10;Name, Title&#10;Date" data-type="authority"></textarea>
+                            </div>
+                        </div>
+                        <button class="check-btn" onclick="window.examSystem.checkSingleQuestion('${question.id}')">Check</button>
+                        <div class="feedback" id="feedback-${question.id}"></div>
+                    `;
+                } else if (question.type === 'short') {
+                    qEl.innerHTML = `
+                        <div class="question-number">Short Answer</div>
+                        <div class="question-text">${question.text}</div>
+                        <div class="question-points">${question.points} points</div>
+                        <div class="input-group">
+                            <textarea id="answer-${question.id}" class="exam-answer" placeholder="Enter your answer..."></textarea>
+                            ${question.hint ? `<div class="help-text">Hint: ${question.hint}</div>` : ''}
+                        </div>
+                        <button class="check-btn" onclick="window.examSystem.checkSingleQuestion('${question.id}')">Check</button>
+                        <div class="feedback" id="feedback-${question.id}"></div>
+                    `;
+                } else {
+                    qEl.innerHTML = `
+                        <div class="question-number">Question ${question.id}</div>
+                        <div class="question-text">${question.text}</div>
+                        <div class="question-points">${question.points} point${question.points > 1 ? 's' : ''}</div>
+                        <div class="input-group">
+                            <input type="text" id="answer-${question.id}" class="exam-answer" placeholder="Type your answer..." onkeydown="if(event.key==='Enter'){window.examSystem.checkSingleQuestion('${question.id}');}">
+                            ${question.hint ? `<div class="help-text">Hint: ${question.hint}</div>` : ''}
+                        </div>
+                        <button class="check-btn" onclick="window.examSystem.checkSingleQuestion('${question.id}')">Check</button>
+                        <div class="feedback" id="feedback-${question.id}"></div>
+                    `;
+                }
+
+                return qEl;
+            }
+
+            toggleSection(sectionId) {
+                const section = document.getElementById(`section-${sectionId}`);
+                section.classList.toggle('expanded');
+                section.classList.toggle('collapsed');
+            }
+
+            initializeMap() {
+                if (document.getElementById('mapDiv').innerHTML !== '') return;
+
+                const map = L.map('mapDiv').setView([20, 0], 2);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_nolabels/{z}/{x}/{y}{r}.png', {
+                    attribution: '&copy; CartoDB',
+                    maxZoom: 19
+                }).addTo(map);
+
+                const chokepoints = [
+                    { id: 1, coords: [26.165, 56.248], name: 'Strait of Hormuz' },
+                    { id: 2, coords: [2.5, 101.5], name: 'Strait of Malacca' },
+                    { id: 3, coords: [12.5, 43.3], name: 'Bab-el-Mandeb' },
+                    { id: 4, coords: [29.97, 32.33], name: 'Suez Canal' },
+                    { id: 5, coords: [9.5, -79.5], name: 'Panama Canal' },
+                    { id: 6, coords: [36.0, -5.5], name: 'Strait of Gibraltar' },
+                    { id: 7, coords: [41.2, 29.0], name: 'Turkish Straits' },
+                    { id: 8, coords: [66.5, -18.5], name: 'Danish Straits' },
+                    { id: 9, coords: [34.5, 129.5], name: 'Korea Strait' },
+                    { id: 10, coords: [21.0, 125.0], name: 'Luzon Strait' }
+                ];
+
+                chokepoints.forEach(cp => {
+                    const marker = L.marker(cp.coords, { title: `Chokepoint ${cp.id}`, opacity: 0.8 })
+                        .bindPopup(`<strong>${cp.id}</strong>`)
+                        .addTo(map);
+
+                    marker.on('click', () => this.showMapInputDialog(cp.id));
+                });
+
+                window.examSystem.map = map;
+            }
+
+            renderMapGrid() {
+                const inputDiv = document.getElementById('mapAnswerInput');
+                if (!inputDiv) return;
+                let html = '<div class="acronym-grid">';
+                for (let i = 1; i <= 10; i++) {
+                    const answered = this.mapAnswers[i] ? ` value="${this.mapAnswers[i]}"` : '';
+                    html += `<div class="acronym-item"><div class="acronym-label">Chokepoint ${i}</div><input type="text" id="map_answer_${i}" class="acronym-input map-answer" data-point="${i}"${answered} placeholder="Location name"></div>`;
+                }
+                html += '</div>';
+                inputDiv.innerHTML = html;
+
+                document.querySelectorAll('.map-answer').forEach(input => {
+                    input.addEventListener('blur', (e) => {
+                        this.mapAnswers[parseInt(e.target.dataset.point)] = e.target.value;
+                        this.updateStats();
+                    });
+                });
+            }
+
+            showMapInputDialog(pointId) {
+                if (!document.getElementById('map_answer_1')) {
+                    this.renderMapGrid();
+                }
+                const el = document.getElementById(`map_answer_${pointId}`);
+                if (el) el.focus();
+            }
+
+            updateStats() {
+                let answered = 0;
+                document.querySelectorAll('.exam-answer').forEach(input => {
+                    if (input.value.trim()) answered++;
+                });
+
+                for (let i = 1; i <= 10; i++) {
+                    const input = document.getElementById(`map_answer_${i}`);
+                    if (input && input.value.trim()) answered++;
+                }
+
+                document.querySelectorAll('[data-type="banner"], [data-type="portion"], [data-type="authority"]').forEach(input => {
+                    if (input.value.trim()) answered++;
+                });
+
+                document.getElementById('answeredCount').textContent = answered;
+            }
+
+            fuzzyMatch(input, expected) {
+                const normalize = (str) => str.toLowerCase().trim().replace(/[^\w\s]/g, '').replace(/\s+/g, ' ');
+                const inputNorm = normalize(input);
+                const expectedNorms = (Array.isArray(expected) ? expected : [expected]).map(e => normalize(e));
+
+                for (let exp of expectedNorms) {
+                    if (inputNorm === exp) return { match: true, score: 1 };
+                    if (inputNorm.includes(exp) || exp.includes(inputNorm)) return { match: true, score: 0.8 };
+                }
+
+                if (input.length > 20) {
+                    for (let exp of expected) {
+                        if (inputNorm.includes(normalize(exp))) return { match: true, score: 0.7 };
+                    }
+                }
+
+                return { match: false, score: 0 };
+            }
+
+            /* ---------- CHECK SINGLE QUESTION ---------- */
+            checkSingleQuestion(qId) {
+                let question = null;
+                let sectionCat = null;
+                for (const section of examSections) {
+                    const found = section.questions.find(q => q.id === qId);
+                    if (found) { question = found; sectionCat = section.category; break; }
+                }
+                if (!question) return;
+
+                const result = this.gradeQuestion(question);
+                const feedbackEl = document.getElementById(`feedback-${question.id}`);
+                const qEl = document.getElementById(`question-${question.id}`);
+
+                if (feedbackEl) {
+                    feedbackEl.textContent = result.feedback;
+                    feedbackEl.className = `feedback show ${result.resultClass}`;
+                }
+                if (qEl) {
+                    qEl.classList.remove('answered-correct', 'answered-incorrect', 'answered-partial');
+                    qEl.classList.add(`answered-${result.resultClass}`);
+                }
+            }
+
+            /* ---------- GRADE A SINGLE QUESTION (shared logic) ---------- */
+            gradeQuestion(q) {
+                let earned = 0, feedback = '', resultClass = '';
+
+                if (q.type === 'map') {
+                    let correctCount = 0;
+                    const chokepoints = [
+                        { id: 1, names: ['strait of hormuz', 'hormuz'] },
+                        { id: 2, names: ['strait of malacca', 'malacca'] },
+                        { id: 3, names: ['bab-el-mandeb', 'bab el mandeb'] },
+                        { id: 4, names: ['suez canal', 'suez'] },
+                        { id: 5, names: ['panama canal', 'panama'] },
+                        { id: 6, names: ['strait of gibraltar', 'gibraltar'] },
+                        { id: 7, names: ['turkish straits', 'bosporus', 'dardanelles'] },
+                        { id: 8, names: ['danish straits', 'denmark strait'] },
+                        { id: 9, names: ['korea strait'] },
+                        { id: 10, names: ['luzon strait', 'luzon'] }
+                    ];
+                    for (let i = 1; i <= 10; i++) {
+                        const input = document.getElementById(`map_answer_${i}`);
+                        if (!input) continue;
+                        const userAnswer = input.value.trim().toLowerCase();
+                        const cp = chokepoints.find(c => c.id === i);
+                        if (cp && cp.names.some(name => userAnswer.includes(name) || name.includes(userAnswer))) {
+                            correctCount++;
+                        }
+                    }
+                    earned = correctCount * (q.points / 10);
+                    feedback = `Identified ${correctCount}/10 chokepoints correctly.`;
+                    resultClass = correctCount === 10 ? 'correct' : correctCount >= 7 ? 'partial' : 'incorrect';
+                } else if (q.type === 'classification') {
+                    const bannerVal = (document.getElementById(`class_banner_${q.id}`) || {}).value || '';
+                    const portionVal = (document.getElementById(`class_portion_${q.id}`) || {}).value || '';
+                    const authVal = (document.getElementById(`class_auth_${q.id}`) || {}).value || '';
+                    let classScore = 0;
+                    if (bannerVal.trim().match(/^(TOP SECRET|SECRET|CONFIDENTIAL)\/\//i)) { classScore += 1; feedback += 'Banner: Correct. '; } else { feedback += 'Banner: Incorrect format. Expected CLASSIFICATION//CAVEATS. '; }
+                    if (portionVal.trim().match(/\([UuSsTt]\)/)) { classScore += 1; feedback += 'Portion: Correct. '; } else { feedback += 'Portion: Incorrect format. Expected (U), (S), (TS) markers. '; }
+                    if (authVal.trim().match(/(original|derivative)/i)) { classScore += 1; feedback += 'Authority: Present. '; } else { feedback += 'Authority: Must specify Original or Derivative classification authority. '; }
+                    earned = classScore;
+                    resultClass = classScore === 3 ? 'correct' : classScore > 0 ? 'partial' : 'incorrect';
+                } else {
+                    const answerEl = document.getElementById(`answer-${q.id}`);
+                    const userAnswer = answerEl ? answerEl.value.trim() : '';
+                    if (!userAnswer) {
+                        feedback = 'No answer provided.';
+                        resultClass = 'incorrect';
+                    } else {
+                        const result = this.fuzzyMatch(userAnswer, q.answer);
+                        if (result.match) {
+                            earned = result.score * q.points;
+                            feedback = result.score === 1 ? 'Correct!' : `Partial credit: ${(result.score * 100).toFixed(0)}%. Expected: ${Array.isArray(q.answer) ? q.answer[0] : q.answer}`;
+                            resultClass = result.score === 1 ? 'correct' : 'partial';
+                        } else {
+                            feedback = 'Incorrect. Correct answer: ' + (Array.isArray(q.answer) ? q.answer[0] : q.answer);
+                            resultClass = 'incorrect';
+                        }
+                    }
+                }
+
+                return { earned, feedback, resultClass, question: q };
+            }
+
+            /* ---------- GRADE SECTION ---------- */
+            gradeSection(sectionId) {
+                const section = examSections.find(s => s.id === sectionId);
+                if (!section) return;
+
+                let totalEarned = 0;
+                let totalPossible = 0;
+                const missed = [];
+
+                section.questions.forEach(q => {
+                    totalPossible += q.points;
+                    const result = this.gradeQuestion(q);
+                    totalEarned += result.earned;
+
+                    const feedbackEl = document.getElementById(`feedback-${q.id}`);
+                    const qEl = document.getElementById(`question-${q.id}`);
+                    if (feedbackEl) {
+                        feedbackEl.textContent = result.feedback;
+                        feedbackEl.className = `feedback show ${result.resultClass}`;
+                    }
+                    if (qEl) {
+                        qEl.classList.remove('answered-correct', 'answered-incorrect', 'answered-partial');
+                        qEl.classList.add(`answered-${result.resultClass}`);
+                    }
+                    if (result.resultClass !== 'correct') {
+                        missed.push({ q, result });
+                    }
+                });
+
+                const pct = totalPossible > 0 ? ((totalEarned / totalPossible) * 100).toFixed(1) : 0;
+                const banner = document.getElementById(`section-score-${sectionId}`);
+                if (banner) {
+                    banner.innerHTML = `<span class="score-text">${totalEarned.toFixed(1)} / ${totalPossible} pts</span><span class="pct-text">${pct}%</span>`;
+                    banner.classList.add('show');
+                }
+            }
+
+            /* ---------- GRADE FULL EXAM (updated) ---------- */
+            gradeExam() {
+                const results = { total: 0, earned: 0, byCategory: {}, missed: [] };
+                examSections.forEach(section => {
+                    if (!results.byCategory[section.category]) results.byCategory[section.category] = { total: 0, earned: 0, missed: [] };
+                });
+
+                examSections.forEach(section => {
+                    section.questions.forEach(q => {
+                        results.byCategory[section.category].total += q.points;
+                        results.total += q.points;
+
+                        const result = this.gradeQuestion(q);
+                        results.byCategory[section.category].earned += result.earned;
+                        results.earned += result.earned;
+
+                        const feedbackEl = document.getElementById(`feedback-${q.id}`);
+                        const qEl = document.getElementById(`question-${q.id}`);
+                        if (feedbackEl) {
+                            feedbackEl.textContent = result.feedback;
+                            feedbackEl.className = `feedback show ${result.resultClass}`;
+                        }
+                        if (qEl) {
+                            qEl.classList.remove('answered-correct', 'answered-incorrect', 'answered-partial');
+                            qEl.classList.add(`answered-${result.resultClass}`);
+                        }
+
+                        if (result.resultClass !== 'correct') {
+                            results.missed.push({ section: section.title, category: section.category, question: q, result });
+                            results.byCategory[section.category].missed.push({ question: q, result });
+                        }
+                    });
+
+                    /* Update section banners too */
+                    const catData = results.byCategory[section.category];
+                    const banner = document.getElementById(`section-score-${section.id}`);
+                    if (banner) {
+                        const sectionEarned = section.questions.reduce((sum, q) => sum + this.gradeQuestion(q).earned, 0);
+                        const pct = section.maxPoints > 0 ? ((sectionEarned / section.maxPoints) * 100).toFixed(1) : 0;
+                        banner.innerHTML = `<span class="score-text">${sectionEarned.toFixed(1)} / ${section.maxPoints} pts</span><span class="pct-text">${pct}%</span>`;
+                        banner.classList.add('show');
+                    }
+                });
+
+                this.lastGradeResults = results;
+                this.saveAttempt(results);
+                this.displayResults(results);
+            }
+
+            displayResults(results) {
+                const panel = document.getElementById('resultsPanel');
+                document.getElementById('scoreDisplay').textContent = `${results.earned.toFixed(1)} / ${results.total}`;
+
+                let breakdownHTML = '';
+                for (let category in results.byCategory) {
+                    const cat = results.byCategory[category];
+                    const percent = cat.total > 0 ? (cat.earned / cat.total * 100).toFixed(1) : 0;
+                    breakdownHTML += `
+                        <div class="category-score">
+                            <div class="category-name">${category}</div>
+                            <div class="category-score-value">${cat.earned.toFixed(1)} / ${cat.total}</div>
+                            <div class="category-percentage">${percent}% Correct</div>
+                            <div class="progress-bar"><div class="progress-fill" style="width: ${percent}%"></div></div>
+                        </div>
+                    `;
+                }
+
+                document.getElementById('scoreBreakdown').innerHTML = breakdownHTML;
+
+                const percent = (results.earned / results.total * 100).toFixed(1);
+                let message = percent >= 90 ? 'Excellent! Ready for examination.' : percent >= 80 ? 'Very good. Minor areas for review.' : percent >= 70 ? 'Satisfactory. Focus on weaker categories.' : percent >= 60 ? 'Passing but needs review.' : 'Additional study recommended.';
+
+                document.getElementById('performanceMessage').textContent = message;
+                panel.classList.add('show');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            }
+
+            /* ---------- PERFORMANCE TRACKING ---------- */
+            saveAttempt(results) {
+                try {
+                    const history = JSON.parse(localStorage.getItem('tpet_history') || '[]');
+                    const entry = {
+                        date: new Date().toLocaleString(),
+                        earned: parseFloat(results.earned.toFixed(1)),
+                        total: results.total,
+                        pct: parseFloat(((results.earned / results.total) * 100).toFixed(1)),
+                        byCategory: {}
+                    };
+                    for (let cat in results.byCategory) {
+                        const c = results.byCategory[cat];
+                        entry.byCategory[cat] = {
+                            earned: parseFloat(c.earned.toFixed(1)),
+                            total: c.total,
+                            pct: parseFloat((c.total > 0 ? (c.earned / c.total * 100) : 0).toFixed(1))
+                        };
+                    }
+                    history.push(entry);
+                    localStorage.setItem('tpet_history', JSON.stringify(history));
+                } catch(e) { /* storage unavailable */ }
+            }
+
+            togglePerformance() {
+                const panel = document.getElementById('performancePanel');
+                panel.classList.toggle('show');
+                if (panel.classList.contains('show')) this.renderPerformance();
+            }
+
+            renderPerformance() {
+                let history = [];
+                try { history = JSON.parse(localStorage.getItem('tpet_history') || '[]'); } catch(e) {}
+
+                const container = document.getElementById('performanceContent');
+                if (history.length === 0) {
+                    container.innerHTML = '<p style="color:var(--text-muted);text-align:center;">No attempts recorded yet. Submit a full exam to start tracking.</p>';
+                    return;
+                }
+
+                let html = '<div class="attempt-row header"><span>#</span><span>Date</span><span style="text-align:right">Score</span><span class="pct">%</span></div>';
+                history.forEach((entry, i) => {
+                    const trend = i > 0 ? (entry.pct > history[i-1].pct ? '<span class="trend-indicator" style="color:var(--success)">&#9650;</span>' : entry.pct < history[i-1].pct ? '<span class="trend-indicator" style="color:var(--danger)">&#9660;</span>' : '<span class="trend-indicator" style="color:var(--text-muted)">&#8212;</span>') : '';
+                    html += `<div class="attempt-row"><span>${i + 1}</span><span>${entry.date}</span><span style="text-align:right">${entry.earned}/${entry.total}</span><span class="pct">${entry.pct}% ${trend}</span></div>`;
+                });
+
+                if (history.length >= 2) {
+                    const latest = history[history.length - 1];
+                    const prev = history[history.length - 2];
+                    html += '<div style="margin-top:20px;"><h3 style="color:var(--gold);margin-bottom:10px;">Category Trends (Last vs Previous)</h3>';
+                    for (let cat in latest.byCategory) {
+                        const curr = latest.byCategory[cat];
+                        const old = prev.byCategory[cat];
+                        if (!old) continue;
+                        const diff = (curr.pct - old.pct).toFixed(1);
+                        const color = diff > 0 ? 'var(--success)' : diff < 0 ? 'var(--danger)' : 'var(--text-muted)';
+                        const arrow = diff > 0 ? '&#9650;' : diff < 0 ? '&#9660;' : '&#8212;';
+                        html += `<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid var(--border);"><span style="color:var(--text-light);">${cat}</span><span style="color:${color};font-weight:bold;">${curr.pct}% ${arrow} (${diff > 0 ? '+' : ''}${diff}%)</span></div>`;
+                    }
+                    html += '</div>';
+                }
+
+                const avgPct = (history.reduce((s, e) => s + e.pct, 0) / history.length).toFixed(1);
+                const best = Math.max(...history.map(e => e.pct)).toFixed(1);
+                html += `<div style="margin-top:15px;padding:12px;background:rgba(0,116,217,0.1);border-radius:5px;display:flex;justify-content:space-around;flex-wrap:wrap;gap:10px;">
+                    <span style="color:var(--text-muted);">Attempts: <strong style="color:var(--gold);">${history.length}</strong></span>
+                    <span style="color:var(--text-muted);">Average: <strong style="color:var(--gold);">${avgPct}%</strong></span>
+                    <span style="color:var(--text-muted);">Best: <strong style="color:var(--success);">${best}%</strong></span>
+                </div>`;
+
+                container.innerHTML = html;
+            }
+
+            clearHistory() {
+                if (!confirm('Clear all performance history?')) return;
+                try { localStorage.removeItem('tpet_history'); } catch(e) {}
+                this.renderPerformance();
+            }
+
+            /* ---------- STUDY REPORT ---------- */
+            generateStudyReport() {
+                const results = this.lastGradeResults;
+                if (!results) { alert('Please grade the exam first.'); return; }
+
+                const report = document.getElementById('studyReport');
+                const content = document.getElementById('studyReportContent');
+                let html = '';
+
+                const byCat = {};
+                (results.missed || []).forEach(m => {
+                    if (!byCat[m.category]) byCat[m.category] = [];
+                    byCat[m.category].push(m);
+                });
+
+                const catOrder = Object.keys(byCat).sort((a, b) => {
+                    const aPct = results.byCategory[a] ? (results.byCategory[a].earned / results.byCategory[a].total) : 1;
+                    const bPct = results.byCategory[b] ? (results.byCategory[b].earned / results.byCategory[b].total) : 1;
+                    return aPct - bPct;
+                });
+
+                if (catOrder.length === 0) {
+                    html = '<p style="color:var(--success);text-align:center;font-size:1.2em;">Perfect score across all categories. No areas need additional study.</p>';
+                } else {
+                    html += '<p style="color:var(--text-muted);margin-bottom:15px;">Categories are ordered from weakest to strongest. Prioritize the areas listed first.</p>';
+
+                    catOrder.forEach(cat => {
+                        const catData = results.byCategory[cat];
+                        const pct = catData.total > 0 ? ((catData.earned / catData.total) * 100).toFixed(1) : 0;
+                        const missedItems = byCat[cat];
+                        const urgency = pct < 60 ? 'PRIORITY' : pct < 80 ? 'REVIEW' : 'MINOR';
+                        const urgencyColor = pct < 60 ? 'var(--danger)' : pct < 80 ? 'var(--warning)' : 'var(--text-muted)';
+
+                        html += `<div class="study-area">
+                            <div class="study-area-title">${cat} — ${pct}% <span style="color:${urgencyColor};font-size:0.8em;margin-left:8px;">[${urgency}]</span></div>
+                            <div class="study-area-items">`;
+
+                        missedItems.forEach(m => {
+                            const correctAns = Array.isArray(m.question.answer) ? m.question.answer[0] : m.question.answer;
+                            html += `<div class="missed-q">
+                                <span style="color:var(--text-light);">${m.question.text}</span><br>
+                                <span class="correct-answer">Answer: ${correctAns}</span>
+                            </div>`;
+                        });
+
+                        html += '</div></div>';
+                    });
+
+                    html += '<div style="margin-top:20px;padding:15px;background:rgba(0,116,217,0.1);border-left:4px solid var(--accent);border-radius:0 5px 5px 0;">';
+                    html += '<div style="color:var(--gold);font-weight:bold;margin-bottom:8px;">Recommended Study Strategy</div>';
+                    html += '<div style="color:var(--text-muted);line-height:1.8;">';
+
+                    catOrder.forEach(cat => {
+                        const pct = results.byCategory[cat] ? ((results.byCategory[cat].earned / results.byCategory[cat].total) * 100).toFixed(1) : 0;
+                        if (pct < 60) {
+                            html += `<div>&#9679; <strong>${cat}</strong>: Needs comprehensive review. Revisit the source slides and study guide sections thoroughly.</div>`;
+                        } else if (pct < 80) {
+                            html += `<div>&#9679; <strong>${cat}</strong>: Review the specific missed items listed above. Target those concepts rather than broad re-reading.</div>`;
+                        }
+                    });
+
+                    html += '</div></div>';
+                }
+
+                content.innerHTML = html;
+                report.classList.add('show');
+                report.scrollIntoView({ behavior: 'smooth' });
+            }
+
+            /* ---------- RESET ---------- */
+            resetExam() {
+                if (!confirm('Clear all answers? (Performance history is preserved.)')) return;
+                document.querySelectorAll('.exam-answer').forEach(el => el.value = '');
+                document.querySelectorAll('textarea[data-type]').forEach(el => el.value = '');
+                document.querySelectorAll('input[data-type]').forEach(el => el.value = '');
+                document.querySelectorAll('.feedback').forEach(el => { el.classList.remove('show'); el.textContent = ''; });
+                document.querySelectorAll('.question').forEach(el => el.classList.remove('answered-correct', 'answered-incorrect', 'answered-partial'));
+                document.querySelectorAll('.section-score-banner').forEach(el => el.classList.remove('show'));
+                document.getElementById('resultsPanel').classList.remove('show');
+                document.getElementById('studyReport').classList.remove('show');
+                this.mapAnswers = {};
+                this.lastGradeResults = null;
+                this.renderMapGrid();
+                this.updateStats();
+            }
+        }
+
+        window.examSystem = new ExamSystem();
+
+        document.addEventListener('input', function(e) {
+            if (e.target.classList.contains('exam-answer') || e.target.dataset.type) {
+                window.examSystem.updateStats();
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            window.examSystem.updateStats();
+        });
+    </script>
+</body>
+</html>
