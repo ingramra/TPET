@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Electromagnetic Spectrum & Intelligence Disciplines</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap');
+:root{--bg:#0c0e13;--bg2:#13161d;--bg3:#1a1e28;--bg4:#232836;--text:#e8e6e0;--text2:#9b998f;--text3:#6b6960;--border:#2a2f3d;--accent:#4a90c4}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100vh;overflow:hidden;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif}
+
+.container{display:flex;flex-direction:column;height:100vh;padding:10px 14px 8px;gap:6px}
+
+/* ── Header row ── */
+.header{display:flex;align-items:baseline;gap:16px;flex-shrink:0;padding:0 2px 2px}
+.header h1{font-size:15px;font-weight:700;letter-spacing:-0.02em;white-space:nowrap}
+.freq-readout{display:flex;align-items:baseline;gap:10px;margin-left:auto}
+.freq-val{font-family:'DM Mono',monospace;font-size:15px;font-weight:500;color:var(--accent)}
+.band-name{font-size:14px;font-weight:600;transition:color 0.15s}
+.wavelength{font-family:'DM Mono',monospace;font-size:12px;color:var(--text2)}
+
+/* ── Spectrum bar ── */
+.spectrum-section{flex-shrink:0}
+.spectrum-track{position:relative;height:38px;border-radius:5px 5px 0 0;overflow:hidden;cursor:crosshair;user-select:none}
+.spectrum-bar{display:flex;height:100%;width:100%}
+.seg{height:100%;position:relative;transition:filter 0.15s}
+.seg .seg-label{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:10px;font-weight:700;color:rgba(255,255,255,0.85);text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;pointer-events:none;text-shadow:0 1px 3px rgba(0,0,0,0.6)}
+.seg.dim{filter:brightness(0.3)}
+.cursor-line{position:absolute;top:0;width:2px;height:100%;background:white;pointer-events:none;z-index:10;box-shadow:0 0 8px rgba(255,255,255,0.5);transition:left 0.04s}
+
+/* ── Perception strip ── */
+.perception-strip{display:flex;height:18px;overflow:hidden;border-radius:0 0 5px 5px;margin-bottom:2px}
+.p-seg{height:100%;display:flex;align-items:center;justify-content:center;transition:filter 0.15s}
+.p-seg.dim{filter:brightness(0.25)}
+.p-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em;white-space:nowrap;pointer-events:none;text-shadow:0 1px 2px rgba(0,0,0,0.7);overflow:hidden;text-overflow:ellipsis;padding:0 2px}
+
+/* ── Main content area ── */
+.main-content{flex:1;min-height:0;display:flex;gap:10px}
+
+/* Left panel */
+.left-panel{width:260px;flex-shrink:0;display:flex;flex-direction:column;gap:6px;overflow-y:auto;padding-right:4px;scrollbar-width:thin;scrollbar-color:#2a2f3d transparent}
+.left-panel::-webkit-scrollbar{width:4px}
+.left-panel::-webkit-scrollbar-thumb{background:#2a2f3d;border-radius:2px}
+
+.panel-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;flex-shrink:0}
+.panel-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;color:var(--text3);margin-bottom:6px}
+.prop-grid{display:grid;grid-template-columns:1fr;gap:4px}
+.prop-row{display:flex;gap:6px;font-size:11px;line-height:1.4}
+.prop-key{color:var(--text3);font-weight:600;min-width:75px;flex-shrink:0;font-size:10px;text-transform:uppercase;letter-spacing:0.04em}
+.prop-val{color:var(--text);font-weight:500}
+
+.human-text{font-size:11px;line-height:1.55;color:var(--text)}
+.human-text strong{color:var(--accent);font-weight:500}
+
+.sys-item{display:flex;align-items:baseline;gap:6px;padding:3px 0;font-size:11px;border-bottom:1px solid var(--bg4)}
+.sys-item:last-child{border-bottom:none}
+.sys-name{font-weight:600;color:var(--text);white-space:nowrap}
+.sys-desc{color:var(--text2);font-size:10px}
+
+/* ── Right panel: INT grid ── */
+.right-panel{flex:1;min-width:0;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:1fr 1fr;gap:6px}
+
+.int-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:10px 11px;display:flex;flex-direction:column;transition:border-color 0.25s,box-shadow 0.25s,opacity 0.25s;overflow:hidden;position:relative}
+.int-card.inactive{opacity:0.3;border-color:transparent}
+.int-card.active{border-color:var(--glow-color,var(--border));box-shadow:0 0 12px color-mix(in srgb,var(--glow-color) 30%,transparent),inset 0 0 20px color-mix(in srgb,var(--glow-color) 8%,transparent)}
+
+.int-header{display:flex;align-items:center;gap:6px;margin-bottom:6px;flex-shrink:0}
+.int-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;transition:box-shadow 0.25s}
+.int-card.active .int-dot{box-shadow:0 0 6px var(--glow-color)}
+.int-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:var(--text2)}
+.int-sub{font-size:9px;color:var(--text3);font-weight:500;flex-shrink:0;margin-bottom:4px;line-height:1.2}
+
+.int-body{flex:1;overflow-y:auto;font-size:11px;line-height:1.55;color:var(--text);scrollbar-width:thin;scrollbar-color:#2a2f3d transparent}
+.int-body::-webkit-scrollbar{width:3px}
+.int-body::-webkit-scrollbar-thumb{background:#2a2f3d;border-radius:2px}
+.int-body strong{color:var(--accent);font-weight:500}
+.int-body .inactive-msg{color:var(--text3);font-style:italic;font-size:10px}
+
+.int-example{margin-top:6px;padding:5px 7px;background:var(--bg3);border-radius:5px;font-size:10px;color:var(--text2);line-height:1.45}
+.ex-label{font-family:'DM Mono',monospace;font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:2px}
+
+/* ── Perception icons ── */
+.pi{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:600;padding:1px 6px;border-radius:3px;margin-right:3px}
+
+/* ── INT focus mode ── */
+.int-card{cursor:pointer}
+.int-card:hover{border-color:color-mix(in srgb,var(--glow-color) 40%,transparent)}
+.int-card.selected{border-color:var(--glow-color,var(--border));box-shadow:0 0 18px color-mix(in srgb,var(--glow-color) 45%,transparent),inset 0 0 25px color-mix(in srgb,var(--glow-color) 12%,transparent);opacity:1}
+.int-card.selected .int-dot{box-shadow:0 0 8px var(--glow-color)}
+.int-card.associated{border-color:color-mix(in srgb,var(--glow-color) 35%,transparent);box-shadow:0 0 8px color-mix(in srgb,var(--glow-color) 20%,transparent),inset 0 0 12px color-mix(in srgb,var(--glow-color) 6%,transparent);opacity:1}
+.int-card.associated .int-dot{box-shadow:0 0 4px var(--glow-color)}
+.int-card.focus-inactive{opacity:0.15;border-color:transparent;box-shadow:none}
+
+.seg.focus-highlight{filter:brightness(1.1)!important;box-shadow:inset 0 0 8px rgba(255,255,255,0.15)}
+.seg.focus-dim{filter:brightness(0.18)!important}
+.p-seg.focus-dim{filter:brightness(0.15)!important}
+.p-seg.focus-highlight{filter:brightness(1)!important}
+
+.focus-banner{display:none;align-items:center;gap:8px;padding:4px 10px;background:var(--bg3);border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text2);flex-shrink:0}
+.focus-banner.visible{display:flex}
+.focus-banner .fb-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.focus-banner .fb-title{font-weight:700;color:var(--text);text-transform:uppercase;letter-spacing:0.05em;font-size:11px}
+.focus-banner .fb-bands{color:var(--text3);font-size:10px;margin-left:auto}
+.focus-banner .fb-close{margin-left:8px;cursor:pointer;color:var(--text3);font-size:13px;line-height:1;padding:2px 4px;border-radius:3px;transition:color 0.15s}
+.focus-banner .fb-close:hover{color:var(--text)}
+
+/* ── Legend row ── */
+.legend-row{display:flex;align-items:center;gap:12px;flex-shrink:0;padding:4px 4px 0}
+.legend-item{display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text3)}
+.ldot{width:6px;height:6px;border-radius:50%}
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- Header -->
+  <div class="header">
+    <h1>Electromagnetic Spectrum &amp; Intelligence Disciplines</h1>
+    <div class="freq-readout">
+      <span class="freq-val" id="freqVal">76 Hz</span>
+      <span class="band-name" id="bandName">ELF</span>
+      <span class="wavelength" id="wavelength"></span>
+    </div>
+  </div>
+
+  <!-- Spectrum bar -->
+  <div class="spectrum-section">
+    <div class="spectrum-track" id="spectrumTrack">
+      <div class="spectrum-bar" id="spectrumBar"></div>
+      <div class="cursor-line" id="cursorLine"></div>
+    </div>
+    <div class="perception-strip" id="perceptionStrip"></div>
+  </div>
+
+  <!-- Legend -->
+  <div class="legend-row">
+    <div class="legend-item"><div class="ldot" style="background:#4a90c4"></div>COMINT</div>
+    <div class="legend-item"><div class="ldot" style="background:#5a9932"></div>ELINT</div>
+    <div class="legend-item"><div class="ldot" style="background:#d86830"></div>FISINT</div>
+    <div class="legend-item"><div class="ldot" style="background:#c04040"></div>MASINT</div>
+    <div class="legend-item"><div class="ldot" style="background:#8844cc"></div>IMINT</div>
+    <div class="legend-item"><div class="ldot" style="background:#dddd44"></div>GEOINT</div>
+    <div class="legend-item"><div class="ldot" style="background:#e0a0b0"></div>TEMPEST</div>
+    <span style="margin-left:auto;font-size:10px;color:var(--text3)" id="hintText">Drag spectrum or click an INT card</span>
+  </div>
+
+  <!-- Focus banner (visible when an INT card is clicked) -->
+  <div class="focus-banner" id="focusBanner">
+    <div class="fb-dot" id="fbDot"></div>
+    <span class="fb-title" id="fbTitle"></span>
+    <span style="color:var(--text3);font-size:10px" id="fbSub"></span>
+    <span class="fb-bands" id="fbBands"></span>
+    <span class="fb-close" id="fbClose" title="Exit focus mode">&times;</span>
+  </div>
+
+  <!-- Main content -->
+  <div class="main-content">
+    <!-- Left panel: Signal environment + human perception + systems -->
+    <div class="left-panel">
+      <div class="panel-card">
+        <div class="panel-label">Signal Propagation</div>
+        <div class="prop-grid">
+          <div class="prop-row"><span class="prop-key">Propagation</span><span class="prop-val" id="propType">—</span></div>
+          <div class="prop-row"><span class="prop-key">Penetration</span><span class="prop-val" id="propPen">—</span></div>
+          <div class="prop-row"><span class="prop-key">Bandwidth</span><span class="prop-val" id="propBw">—</span></div>
+        </div>
+      </div>
+      <div class="panel-card" style="flex:1;min-height:0;display:flex;flex-direction:column">
+        <div class="panel-label">Human Perception</div>
+        <div class="human-text" id="humanSense" style="margin-bottom:6px;flex:1;overflow-y:auto;scrollbar-width:thin;scrollbar-color:#2a2f3d transparent"></div>
+      </div>
+      <div class="panel-card">
+        <div class="panel-label">Systems in Band</div>
+        <div id="systemsList"></div>
+      </div>
+    </div>
+
+    <!-- Right panel: INT discipline grid -->
+    <div class="right-panel" id="intGrid"></div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════════════════
+// DATA
+// ════════════════════════════════════════════
+
+const BANDS=[
+{id:'elf',name:'ELF',min:3,max:3e3,color:'#7f77dd',pct:5},
+{id:'vlf',name:'VLF',min:3e3,max:3e4,color:'#6a5fc0',pct:6},
+{id:'lf',name:'LF',min:3e4,max:3e5,color:'#4a6fb5',pct:6},
+{id:'mf',name:'MF',min:3e5,max:3e6,color:'#2d8f7a',pct:7},
+{id:'hf',name:'HF',min:3e6,max:3e7,color:'#5a9932',pct:8},
+{id:'vhf',name:'VHF',min:3e7,max:3e8,color:'#b58a17',pct:8},
+{id:'uhf',name:'UHF',min:3e8,max:3e9,color:'#d86830',pct:9},
+{id:'shf',name:'SHF',min:3e9,max:3e10,color:'#c0392b',pct:9},
+{id:'ehf',name:'EHF',min:3e10,max:3e11,color:'#a02060',pct:8},
+{id:'ir',name:'Infrared',min:3e11,max:4.3e14,color:'#c04040',pct:10},
+{id:'vis',name:'Visible',min:4.3e14,max:7.5e14,color:'#dddd44',pct:8},
+{id:'uv',name:'UV',min:7.5e14,max:3e16,color:'#8844cc',pct:6},
+{id:'xray',name:'X-Ray',min:3e16,max:3e19,color:'#4488ee',pct:5},
+{id:'gamma',name:'Gamma',min:3e19,max:3e22,color:'#2244aa',pct:5}
+];
+
+const PERCSEGS=[
+{label:'Imperceptible',pct:5,color:'#1a1e28',tc:'#555',bids:['elf']},
+{label:'Imperceptible',pct:6,color:'#1a1e28',tc:'#555',bids:['vlf']},
+{label:'Imperceptible',pct:6,color:'#1a1e28',tc:'#555',bids:['lf']},
+{label:'Audio via radio',pct:7,color:'#2a4040',tc:'#6daa90',bids:['mf']},
+{label:'Audio via radio',pct:8,color:'#2a4030',tc:'#7daa70',bids:['hf']},
+{label:'Audio via radio',pct:8,color:'#3a3520',tc:'#b5a050',bids:['vhf']},
+{label:'Audio + data',pct:9,color:'#3a2a1a',tc:'#c08040',bids:['uhf']},
+{label:'Microwave',pct:9,color:'#3a1a1a',tc:'#c06040',bids:['shf']},
+{label:'mm-wave',pct:8,color:'#2a1528',tc:'#a05070',bids:['ehf']},
+{label:'Felt as heat',pct:10,color:'#3a1818',tc:'#d06050',bids:['ir']},
+{label:'Visible',pct:8,color:'#3a3a10',tc:'#dddd44',bids:['vis']},
+{label:'Sunburn',pct:6,color:'#251838',tc:'#a060cc',bids:['uv']},
+{label:'Medical',pct:5,color:'#182838',tc:'#6090cc',bids:['xray']},
+{label:'Nuclear',pct:5,color:'#141838',tc:'#5070aa',bids:['gamma']}
+];
+
+const INTELS={
+comint:{title:'COMINT',sub:'Communications Intelligence',dot:'#4a90c4'},
+elint:{title:'ELINT',sub:'Electronic Intelligence',dot:'#5a9932'},
+fisint:{title:'FISINT',sub:'Foreign Instrumentation Signals',dot:'#d86830'},
+masint:{title:'MASINT',sub:'Measurement & Signature Intelligence',dot:'#c04040'},
+imint:{title:'IMINT',sub:'Imagery Intelligence',dot:'#8844cc'},
+geoint:{title:'GEOINT',sub:'Geospatial Intelligence',dot:'#dddd44'},
+tempest:{title:'TEMPEST',sub:'Emanation Security / Exploitation',dot:'#e0a0b0'}
+};
+
+const HUMAN={
+elf:{sense:'<span class="pi" style="background:#1a1e28;border:1px solid #444;color:#888">Imperceptible</span> Completely invisible to all human senses. ELF waves pass through your body with zero interaction you can detect. You have no biological receptor for electromagnetic waves at these frequencies.',interact:'No everyday interaction. These exist only in military submarine comms (Project ELF) and naturally in lightning and Schumann resonances (~7.8 Hz).'},
+vlf:{sense:'<span class="pi" style="background:#1a1e28;border:1px solid #444;color:#888">Imperceptible</span> Invisible to all senses. VLF overlaps human hearing range but <strong>sound is mechanical pressure; VLF is electromagnetic.</strong> Your ear detects air pressure, not EM fields.',interact:'VLF "whistlers" (lightning signals ducted along magnetic field lines) can be converted to audio by a receiver. TACAMO broadcasts occur here but require a very long antenna.'},
+lf:{sense:'<span class="pi" style="background:#1a1e28;border:1px solid #444;color:#888">Imperceptible</span> No direct perception. LF waves pass through your body and buildings without detectable interaction.',interact:'Longwave AM radio (148\u2013283 kHz) in Europe. BBC Radio 4 on 198 kHz is an LF wave converted to audio by your radio. LORAN-C navigation at 100 kHz also operated here.'},
+mf:{sense:'<span class="pi" style="background:#2a4040;border:1px solid #4a7a6a;color:#6daa90">Heard via device</span> Still imperceptible directly. But this is where <strong>human voice first rides on electromagnetic waves</strong>. AM radio (540\u20131700 kHz) modulates audio onto MF carriers.',interact:'Every AM radio station you have heard was an MF electromagnetic wave. AM sounds lower-quality than FM because bandwidth: AM channels are 10 kHz wide (voice), FM channels are 200 kHz wide (stereo).'},
+hf:{sense:'<span class="pi" style="background:#2a4040;border:1px solid #4a7a6a;color:#6daa90">Heard via device</span> Shortwave radio, ham radio, CB radio (27 MHz) all carry voice on HF carriers. Tuning across shortwave bands and hearing voices from other continents is HF skywave \u2014 ionospheric propagation.',interact:'Shortwave listening, ham radio, CB radio. If you have heard a trucker on CB or BBC World Service on shortwave, that was an HF wave via ionospheric skip.'},
+vhf:{sense:'<span class="pi" style="background:#2a4040;border:1px solid #4a7a6a;color:#6daa90">Heard via device</span> The band you interact with most as "radio." <strong>FM radio (88\u2013108 MHz)</strong> produces high-fidelity audio. VHF TV channels 2\u201313 carried analog television.',interact:'FM radio, legacy VHF television, aviation ATC scanners, marine VHF channel 16, walkie-talkies, baby monitors.'},
+uhf:{sense:'<span class="pi" style="background:#2a4040;border:1px solid #4a7a6a;color:#6daa90">Sensed via devices</span> Imperceptible directly, but UHF <strong>defines modern wireless life</strong>. Cell phone, WiFi (2.4 GHz), Bluetooth, GPS (1.575 GHz), digital TV \u2014 all UHF.',interact:'Cell phones, WiFi, Bluetooth, GPS, digital TV, garage door openers, <strong>microwave ovens (2.45 GHz)</strong> \u2014 they heat water molecules by making them oscillate at the wave frequency.'},
+shf:{sense:'<span class="pi" style="background:#1a1e28;border:1px solid #444;color:#888">Imperceptible</span> SHF at sufficient power heats tissue (microwave oven principle). At communication power levels, passes through you undetected.',interact:'Satellite TV dishes (Ku-band 12\u201318 GHz), 5G, Starlink (Ka-band), radar detectors, weather radar, airport body scanners, speed cameras.'},
+ehf:{sense:'<span class="pi" style="background:#1a1e28;border:1px solid #444;color:#888">Imperceptible</span> Millimeter wave absorbed by skin within the first mm. The military <strong>Active Denial System ("pain ray")</strong> at 95 GHz heats skin surface to create burning sensation.',interact:'Airport body scanners (24\u201330 GHz), 5G mmWave (28/39 GHz), automotive radar (77 GHz). 60 GHz absorbed by atmospheric oxygen \u2014 natural interception barrier.'},
+ir:{sense:'<span class="pi" style="background:#3a1818;border:1px solid #a05040;color:#d06050">Felt as heat</span> <strong>The first band you directly perceive.</strong> Skin thermoreceptors detect infrared as warmth. Campfire heat, sun warming your face \u2014 all infrared EM waves. Your body emits IR (peak ~10 \u03BCm).',interact:'Everything warm emits IR: your body, incandescent bulbs (~95% IR), fire, sun. TV remotes transmit near-IR pulses (~940 nm). Night vision amplifies near-IR. Thermal cameras detect mid/far-IR.'},
+vis:{sense:'<span class="pi" style="background:#3a3a10;border:1px solid #aaaa30;color:#dddd44">Seen by eyes</span> <strong>The only EM band directly visible to humans.</strong> Retinal cones respond to ~380 nm (violet) through ~700 nm (red). Less than one octave of the full spectrum. Evolution tuned eyes here because the Sun peaks after atmospheric filtering.',interact:'Everything you see. Every visual experience = visible-light EM waves. Color is frequency: red ~430 THz, green ~560 THz, blue ~630 THz. A rainbow = visible light separated by frequency via refraction.'},
+uv:{sense:'<span class="pi" style="background:#251838;border:1px solid #7040a0;color:#a060cc">Biological effect</span> Invisible to eyes but body responds. <strong>UV-B causes sunburn</strong> \u2014 damages DNA, triggers melanin. UV-A penetrates deeper, causes aging. Some animals (bees, birds) see into UV.',interact:'Sunburn, tanning, vitamin D synthesis (UV-B), blacklight fluorescence (UV-A at ~365 nm), UV sterilization (UV-C at 254 nm destroys bacterial DNA), banknote security features.'},
+xray:{sense:'<span class="pi" style="background:#182838;border:1px solid #4070a0;color:#6090cc">Ionizing \u2014 no sensation</span> X-rays pass through soft tissue, absorbed by bone/metal. <strong>Ionizing radiation</strong>: enough energy to strip electrons, breaking molecular bonds and damaging DNA.',interact:'Medical/dental X-rays, CT scans, airport baggage scanners, industrial weld inspection, crystallography (DNA double helix discovered via X-ray diffraction).'},
+gamma:{sense:'<span class="pi" style="background:#182838;border:1px solid #4070a0;color:#6090cc">Ionizing \u2014 no sensation</span> Imperceptible at survivable intensity. Each photon can break bonds, ionize atoms, damage DNA. <strong>Massive doses cause radiation sickness and death.</strong>',interact:'Cancer treatment (radiation therapy), food irradiation, nuclear medicine (PET scans), industrial radiography. Natural: potassium-40 in bananas, radon gas, cosmic rays.'}
+};
+
+const DATA={
+elf:{propagation:'Earth-ionosphere waveguide \u2014 global',penetration:'Seawater to ~200m',bandwidth:'< 1 Hz \u2014 characters per minute',
+intels:{comint:{active:true,body:'One-way submarine bell-ringer. <strong>Project ELF</strong> at 76 Hz: 84 miles of antenna cable to say "come to periscope depth."',example:'Three-letter code group took minutes at < 1 Hz bandwidth.'},masint:{active:true,body:'Submarines generate ELF magnetic signatures from hull interactions with Earth\u2019s field. <strong>MAD sensors</strong> exploit this.',example:'MH-60R MAD detects the ELF magnetic disturbance of a submarine steel hull.'}},
+systems:[{name:'Project ELF (76 Hz)',desc:'U.S. Navy submarine bell-ringer (decommissioned 2004)'},{name:'ZEVS (82 Hz)',desc:'Russian Navy ELF transmitter'},{name:'MAD sensors',desc:'Magnetic anomaly detection for submarine hunting'}]},
+vlf:{propagation:'Earth-ionosphere waveguide \u2014 global, extremely reliable',penetration:'Seawater to ~20m (periscope depth)',bandwidth:'~200 Hz \u2014 50-300 bps',
+intels:{comint:{active:true,body:'Nuclear C2 to submarines. <strong>TACAMO (E-6B)</strong> trails a 5-mile antenna. NAA Cutler broadcasts at 1.8 MW.',example:'E-6B at ~24 kHz \u2014 enough bandwidth for encrypted Emergency Action Messages.'},elint:{active:true,body:'Some early warning systems and navigation beacons produce characterizable VLF emissions.',example:'Legacy Omega navigation at 10-14 kHz.'}},
+systems:[{name:'TACAMO / E-6B',desc:'Airborne VLF nuclear C2 \u2014 5-mile trailing antenna'},{name:'NAA Cutler, Maine',desc:'Navy VLF, 24 kHz, 1.8 MW'}]},
+lf:{propagation:'Ground wave, hundreds of miles',penetration:'Limited soil/structure',bandwidth:'~10 kHz \u2014 navigation pulses, low-rate data',
+intels:{comint:{active:true,body:'Legacy maritime/military LF. Some nations maintain LF as submarine backup.',example:'Russian naval LF supplements VLF for redundancy.'},elint:{active:true,body:'Navigation beacons, LORAN-type transmitters. <strong>CDAA</strong> facilities for LF/HF direction-finding.',example:'El Salao CDAA: 3,000\u20138,000 nm detection range.'}},
+systems:[{name:'LORAN-C (100 kHz)',desc:'Navigation (decommissioned; eLoran reconsidered)'},{name:'CDAA stations',desc:'Direction-finding arrays (Cuba, South China Sea)'}]},
+mf:{propagation:'Ground wave 100-300 mi (day); skywave 1,000+ mi (night)',penetration:'Minimal \u2014 atmospheric noise dominant',bandwidth:'~10 kHz \u2014 voice quality',
+intels:{comint:{active:true,body:'AM broadcast monitoring, maritime comms. Limited modern military value.',example:'Cold War AM monitoring for propaganda analysis.'},masint:{active:true,body:'Nuclear EMP at MF. Lightning detection networks.',example:'Starfish Prime (1962) MF-band EMP disrupted Hawaii 900 mi away.'}},
+systems:[{name:'AM broadcast',desc:'540\u20131700 kHz commercial broadcasting'},{name:'500 kHz distress',desc:'Former maritime distress (legacy)'}]},
+hf:{propagation:'Skywave \u2014 ionospheric refraction, worldwide BLOS',penetration:'Does not reliably reach satellites',bandwidth:'27 MHz total \u2014 3 kHz SSB voice',
+intels:{comint:{active:true,body:'Most collected band in COMINT history. Ground stations collect because HF stays below ionosphere. Cuba\u2019s Bejucal targets HF from SE United States.',example:'NSA global HF intercept network: backbone of Cold War COMINT.'},elint:{active:true,body:'OTH radars: Russia\u2019s <strong>Duga</strong>, Australia\u2019s <strong>JORN</strong>.',example:'Duga at 7\u201319 MHz interfered with global HF comms.'},fisint:{active:true,body:'Some weapons telemetry uses HF for BLOS relay.',example:'HF telemetry from remote test ranges \u2014 interceptable via skywave.'},tempest:{active:true,body:'Computer emanations in HF band. Clock harmonics, switching noise.',example:'Processor harmonics radiate throughout HF via cable runs.'}},
+systems:[{name:'Military HF (AN/PRC-150)',desc:'SATCOM backup, ALE, voice + 9.6 kbps'},{name:'JORN (6\u201330 MHz)',desc:'Australian OTH radar, 3,000 km range'},{name:'Bejucal CDAA',desc:'Cuba SIGINT \u2014 HF COMINT collection'}]},
+vhf:{propagation:'Line of sight \u2014 passes through ionosphere',penetration:'Some building/foliage at lower VHF',bandwidth:'270 MHz total \u2014 25 kHz tactical channels',
+intels:{comint:{active:true,body:'<strong>SINCGARS</strong> (30\u201388 MHz), ATC (118\u2013137 MHz), marine VHF. Satellites collect VHF freely.',example:'SIGINT sats intercept VHF tactical radio \u2014 passes through ionosphere.'},elint:{active:true,body:'VHF radars: counter-stealth via <strong>resonance</strong> (wavelength ~ aircraft size).',example:'Russian Nebo-M VHF counter-stealth radar.'},fisint:{active:true,body:'Launch telemetry at VHF collected by satellite and ground.',example:'VHF missile telemetry radiates upward through ionosphere.'},tempest:{active:true,body:'HDMI pixel clock (25\u2013600 MHz) radiates in VHF. Primary <strong>van Eck phreaking</strong> band.',example:'Van Eck reconstructed monitor from VHF emanations in 1985.'}},
+systems:[{name:'SINCGARS',desc:'30\u201388 MHz, 2,320-channel frequency hopping'},{name:'ATC',desc:'118\u2013137 MHz air traffic control'},{name:'Nebo-M',desc:'Russian VHF counter-stealth radar'}]},
+uhf:{propagation:'Line of sight \u2014 passes cleanly through ionosphere',penetration:'Good building/foliage at lower UHF',bandwidth:'2.7 GHz total \u2014 MHz-wide channels',
+intels:{comint:{active:true,body:'MUOS SATCOM, tactical UHF, HAVE QUICK. <strong>Orion</strong> GEO sats (~100m antenna) collect UHF globally.',example:'Orion intercepts individual UHF comms from entire hemisphere.'},elint:{active:true,body:'<strong>Link 16</strong> (960\u20131215 MHz), <strong>IFF Mode 5</strong> (1030/1090 MHz). Maps enemy network architecture.',example:'Link 16 emissions reveal networked platform count and positions.'},fisint:{active:true,body:'Primary missile/space telemetry. <strong>JUMPSEAT/TRUMPET</strong> collected ICBM telemetry.',example:'JUMPSEAT 13-ft antenna: ICBM range, accuracy, warhead data.'},masint:{active:true,body:'Equipment emissions, power grid noise. <strong>NUCDET</strong> on GPS detects UHF EMP.',example:'GPS nuclear detection payloads sense UHF-band EMP.'},tempest:{active:true,body:'USB 3.0, HDMI 2.0, DDR memory radiate in UHF.',example:'DDR4 at 1.2\u20133.2 GHz: emanations correlated with data processed.'}},
+systems:[{name:'MUOS',desc:'300\u2013380 MHz, 384 kbps to handheld'},{name:'GPS L1',desc:'1.575 GHz navigation/timing'},{name:'Link 16',desc:'960\u20131215 MHz tactical data link'},{name:'Orion SIGINT',desc:'GEO, ~100m antenna, global UHF'},{name:'JUMPSEAT/TRUMPET',desc:'HEO Molniya orbit collection'}]},
+shf:{propagation:'Line of sight \u2014 narrow beams, high directivity',penetration:'Reduced by rain, foliage, buildings',bandwidth:'27 GHz total \u2014 wideband channels',
+intels:{comint:{active:true,body:'Military SATCOM (X/Ka-band), commercial SATCOM (C/Ku). <strong>AEHF</strong> jam-resistant strategic.',example:'Ku-band SATCOM sidelobe leakage reveals terminal location.'},elint:{active:true,body:'Fire-control/tracking radars: S, C, X-band. <strong>Core of the Growler\u2019s threat library.</strong>',example:'AN/APG-81 (F-35C), AN/SPY-1 (Aegis), SA-21 \u2014 all SHF.'},fisint:{active:true,body:'Tracking radars, satellite uplinks, spacecraft telemetry.',example:'Foreign missile test X-band tracking data.'},masint:{active:true,body:'<strong>RADINT</strong> \u2014 radar cross-section measurement. Foreign aircraft characterization.',example:'National RCS facilities characterize foreign aircraft at X-band.'},geoint:{active:true,body:'<strong>SAR</strong> \u2014 radar imagery through clouds, at night. Core GEOINT sensor.',example:'NRO SAR satellites: all-weather ground imagery.'}},
+systems:[{name:'AN/SPY-1 Aegis',desc:'S-band naval air defense'},{name:'AN/APG-81',desc:'F-35C X-band AESA'},{name:'SAR satellites',desc:'All-weather GEOINT'},{name:'AN/TPY-2',desc:'THAAD X-band BMD radar'}]},
+ehf:{propagation:'Line of sight \u2014 narrow beams, severe rain fade',penetration:'Poor \u2014 blocked by rain, fog, materials',bandwidth:'270 GHz total \u2014 extremely wideband',
+intels:{comint:{active:true,body:'Ka/V-band SATCOM. <strong>60 GHz crosslinks</strong>: atmosphere absorbs, preventing ground intercept.',example:'NRO relay sats use 60 GHz \u2014 atmospheric absorption = security.'},elint:{active:true,body:'mm-wave seekers (35/94 GHz), automotive radar (77 GHz).',example:'Seeker waveform characterization informs countermeasures.'},masint:{active:true,body:'mm-wave radiometry \u2014 passive thermal detection. Airport scanners. Active Denial (95 GHz).',example:'Body scanners detect concealed objects via mm-wave emission contrast.'}},
+systems:[{name:'60 GHz crosslinks',desc:'Satellite relay \u2014 atmosphere blocks ground intercept'},{name:'77 GHz auto radar',desc:'Collision avoidance'},{name:'Active Denial',desc:'95 GHz directed energy'}]},
+ir:{propagation:'Line of sight \u2014 atmospheric windows at specific wavelengths',penetration:'Blocked by clouds; some smoke penetration',bandwidth:'Enormous \u2014 thermal imaging, spectroscopy',
+intels:{masint:{active:true,body:'Dominant MASINT band. <strong>SBIRS</strong> detects missile plumes. <strong>IRST</strong> detects aircraft passively. Everything warm emits IR.',example:'SBIRS detects ICBM launch in seconds, identifies propellant from spectral signature.'},imint:{active:true,body:'<strong>FLIR</strong> thermal imagery \u2014 camouflaged vehicles, personnel at night, underground ventilation.',example:'MH-60R FLIR detects submarine periscope wake via thermal contrast.'},geoint:{active:true,body:'IR satellite imagery: thermal patterns, agriculture, industrial activity, underground facilities.',example:'Thermal IR reveals bunker ventilation \u2014 exhaust warmer than terrain.'}},
+systems:[{name:'SBIRS',desc:'GEO+HEO missile launch detection'},{name:'IRST21',desc:'Passive IR air-to-air on F/A-18E/F'},{name:'AN/AAQ-40 EOTS',desc:'F-35C EO/IR targeting'},{name:'AN/AAQ-37 DAS',desc:'F-35C 360\u00b0 IR system'}]},
+vis:{propagation:'Line of sight \u2014 blocked by clouds, terrain',penetration:'None \u2014 opaque materials block',bandwidth:'~330 THz \u2014 color = frequency',
+intels:{imint:{active:true,body:'Primary IMINT band. <strong>KH-11</strong>, aerial photo, drone FMV. Resolution < 10 cm from space.',example:'2019 Trump tweet assessed as KH-11 photo of Iranian launch failure.'},geoint:{active:true,body:'Foundation of GEOINT. <strong>NGA</strong> fuses visible imagery for maps and change detection.',example:'NGA change-detection: satellite images over time reveal construction and deployments.'},masint:{active:true,body:'Nuclear <strong>double-flash</strong> (bhangmeters). Spectral analysis. Laser designation.',example:'GPS bhangmeters detect the unique double-flash of nuclear detonation.'}},
+systems:[{name:'KH-11 KENNEN',desc:'NRO EO satellite, < 10 cm resolution'},{name:'MQ-9 Reaper FMV',desc:'Persistent drone video'},{name:'NUCDET bhangmeters',desc:'Optical nuclear detection'}]},
+uv:{propagation:'Mostly absorbed by atmosphere',penetration:'Blocked by glass, atmosphere',bandwidth:'Very wide \u2014 specialized',
+intels:{masint:{active:true,body:'Missile plume UV \u2014 less susceptible to flare countermeasures. Biological agent fluorescence.',example:'AN/AAR-47 UV channel confirms missile plume alongside IR.'},imint:{active:true,body:'UV reveals camouflage failures. Document forensics.',example:'Fresh vehicle tracks fluoresce differently under UV.'}},
+systems:[{name:'AN/AAR-47 UV',desc:'Missile warning UV channel'},{name:'Forensic UV',desc:'Document/material examination'}]},
+xray:{propagation:'Absorbed by atmosphere \u2014 space/proximity only',penetration:'Soft tissue yes, dense material no',bandwidth:'Extremely wide',
+intels:{masint:{active:true,body:'Nuclear X-ray emissions. Cargo/vehicle inspection.',example:'Vela satellites \u2014 1979 incident remains debated.'},imint:{active:true,body:'<strong>Backscatter X-ray</strong> \u2014 concealed weapons, contraband.',example:'Z Backscatter Van scans vehicles externally.'}},
+systems:[{name:'Vela (legacy)',desc:'Nuclear test X-ray detection'},{name:'Cargo scanners',desc:'Port container inspection'},{name:'Z Backscatter Van',desc:'Mobile threat detection'}]},
+gamma:{propagation:'Absorbed by atmosphere \u2014 space/proximity only',penetration:'Extreme \u2014 most materials',bandwidth:'Highest energy EM radiation',
+intels:{masint:{active:true,body:'<strong>Nuclear MASINT</strong> \u2014 definitive nuclear signature. Gamma spectroscopy identifies isotopes (Pu-239, U-235). Treaty verification.',example:'Port radiation monitors ID weapons-grade material by gamma energy spectrum.'}},
+systems:[{name:'Portal monitors',desc:'Port gamma spectroscopy'},{name:'NUCDET gamma',desc:'Space-based nuclear detection'},{name:'CTBTO IMS',desc:'Nuclear test ban monitoring'}]}
+};
+
+// ════════════════════════════════════════════
+// FREQUENCY / POSITION MAPPING
+// ════════════════════════════════════════════
+
+const TOTAL_PCT = BANDS.reduce((s,b)=>s+b.pct,0);
+
+function freqFromPosition(frac){
+    frac=Math.max(0,Math.min(1,frac));
+    const target=frac*TOTAL_PCT;
+    let cum=0;
+    for(const b of BANDS){
+        if(target<cum+b.pct){
+            const fr=(target-cum)/b.pct;
+            return Math.pow(10,Math.log10(b.min)+fr*(Math.log10(b.max)-Math.log10(b.min)));
+        }
+        cum+=b.pct;
+    }
+    return BANDS[BANDS.length-1].max;
+}
+
+function positionFromFreq(freq){
+    let cum=0;
+    for(const b of BANDS){
+        if(freq<=b.max){
+            const logFrac=(Math.log10(Math.max(freq,b.min))-Math.log10(b.min))/(Math.log10(b.max)-Math.log10(b.min));
+            return(cum+logFrac*b.pct)/TOTAL_PCT;
+        }
+        cum+=b.pct;
+    }
+    return 1;
+}
+
+// ════════════════════════════════════════════
+// FORMATTING
+// ════════════════════════════════════════════
+
+function formatFreq(f){
+    if(f<1e3)return Math.round(f)+' Hz';
+    if(f<1e6)return(f/1e3).toFixed(f<1e4?1:0)+' kHz';
+    if(f<1e9)return(f/1e6).toFixed(f<1e7?1:0)+' MHz';
+    if(f<1e12)return(f/1e9).toFixed(f<1e10?1:0)+' GHz';
+    if(f<1e15)return(f/1e12).toFixed(f<1e13?1:0)+' THz';
+    return(f/1e15).toFixed(1)+' PHz';
+}
+
+function formatWL(f){
+    const l=299792458/f;
+    if(l>=1000)return'\u03BB = '+(l/1000).toFixed(l>1e6?0:1)+' km';
+    if(l>=1)return'\u03BB = '+l.toFixed(l>100?0:1)+' m';
+    if(l>=1e-3)return'\u03BB = '+(l*1e3).toFixed(1)+' mm';
+    if(l>=1e-6)return'\u03BB = '+(l*1e6).toFixed(l>1e-4?0:1)+' \u03BCm';
+    if(l>=1e-9)return'\u03BB = '+(l*1e9).toFixed(1)+' nm';
+    if(l>=1e-12)return'\u03BB = '+(l*1e12).toFixed(2)+' pm';
+    return'\u03BB = '+(l*1e15).toFixed(2)+' fm';
+}
+
+function getBand(f){for(const b of BANDS){if(f>=b.min&&f<b.max)return b}return BANDS[BANDS.length-1]}
+
+// ════════════════════════════════════════════
+// BUILD UI
+// ════════════════════════════════════════════
+
+function buildSpectrumBar(){
+    const bar=document.getElementById('spectrumBar');
+    BANDS.forEach(b=>{
+        const s=document.createElement('div');
+        s.className='seg';s.dataset.band=b.id;
+        s.style.width=b.pct+'%';s.style.background=b.color;
+        const l=document.createElement('span');l.className='seg-label';l.textContent=b.name;
+        s.appendChild(l);bar.appendChild(s);
+    });
+}
+
+function buildPerceptionStrip(){
+    const ps=document.getElementById('perceptionStrip');
+    PERCSEGS.forEach(p=>{
+        const s=document.createElement('div');
+        s.className='p-seg';s.dataset.bands=p.bids.join(',');
+        s.style.width=p.pct+'%';s.style.background=p.color;
+        s.style.borderTop='1px solid '+p.tc+'44';
+        const l=document.createElement('span');l.className='p-label';l.style.color=p.tc;
+        l.textContent=p.label;s.appendChild(l);ps.appendChild(s);
+    });
+}
+
+function buildIntGrid(){
+    const grid=document.getElementById('intGrid');
+    const order=['comint','elint','fisint','masint','imint','geoint','tempest'];
+    order.forEach(k=>{
+        const info=INTELS[k];
+        const card=document.createElement('div');
+        card.className='int-card inactive';
+        card.id='int-'+k;
+        card.style.setProperty('--glow-color',info.dot);
+        card.innerHTML=`
+            <div class="int-header">
+                <div class="int-dot" style="background:${info.dot}"></div>
+                <div class="int-title">${info.title}</div>
+            </div>
+            <div class="int-sub">${info.sub}</div>
+            <div class="int-body" id="intBody-${k}">
+                <span class="inactive-msg">Not active at this frequency</span>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
+}
+
+// ════════════════════════════════════════════
+// UPDATE DISPLAY
+// ════════════════════════════════════════════
+
+function updateDisplay(freq){
+    const band=getBand(freq);
+    const d=DATA[band.id];
+    const h=HUMAN[band.id];
+
+    // Frequency readout
+    document.getElementById('freqVal').textContent=formatFreq(freq);
+    document.getElementById('bandName').textContent=band.name;
+    document.getElementById('bandName').style.color=band.color;
+    document.getElementById('wavelength').textContent=formatWL(freq);
+
+    // Cursor position
+    const track=document.getElementById('spectrumTrack');
+    const frac=positionFromFreq(freq);
+    document.getElementById('cursorLine').style.left=(frac*100)+'%';
+
+    // Dim non-active band segments
+    document.querySelectorAll('.seg').forEach(s=>s.classList.toggle('dim',s.dataset.band!==band.id));
+    document.querySelectorAll('.p-seg').forEach(s=>s.classList.toggle('dim',!s.dataset.bands.split(',').includes(band.id)));
+
+    // Left panel: propagation
+    if(d){
+        document.getElementById('propType').textContent=d.propagation;
+        document.getElementById('propPen').textContent=d.penetration;
+        document.getElementById('propBw').textContent=d.bandwidth;
+    }
+
+    // Left panel: human perception
+    if(h){
+        document.getElementById('humanSense').innerHTML=
+            '<div style="margin-bottom:6px">'+h.sense+'</div>'+
+            '<div style="color:var(--text2);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:3px">Everyday Interaction</div>'+
+            '<div>'+h.interact+'</div>';
+    }
+
+    // Left panel: systems
+    const sysEl=document.getElementById('systemsList');
+    sysEl.innerHTML='';
+    if(d&&d.systems){
+        d.systems.forEach(s=>{
+            const item=document.createElement('div');
+            item.className='sys-item';
+            item.innerHTML='<span class="sys-name">'+s.name+'</span><span class="sys-desc">'+s.desc+'</span>';
+            sysEl.appendChild(item);
+        });
+    }
+
+    // Right panel: INT cards
+    const intOrder=['comint','elint','fisint','masint','imint','geoint','tempest'];
+    intOrder.forEach(k=>{
+        const card=document.getElementById('int-'+k);
+        const body=document.getElementById('intBody-'+k);
+        const intData=d&&d.intels&&d.intels[k];
+        const isActive=intData&&intData.active;
+
+        card.classList.toggle('active',!!isActive);
+        card.classList.toggle('inactive',!isActive);
+
+        if(isActive){
+            let html=intData.body;
+            if(intData.example){
+                html+='<div class="int-example"><div class="ex-label">Example</div>'+intData.example+'</div>';
+            }
+            body.innerHTML=html;
+        } else {
+            body.innerHTML='<span class="inactive-msg">Not active at this frequency</span>';
+        }
+    });
+}
+
+// ════════════════════════════════════════════
+// EVENT LISTENERS
+// ════════════════════════════════════════════
+
+// ════════════════════════════════════════════
+// INT FOCUS MODE
+// ════════════════════════════════════════════
+
+let focusedInt = null;
+
+// Build reverse map: { intId: [bandId, bandId, ...] }
+function buildReverseMap(){
+    const map = {};
+    const intOrder=['comint','elint','fisint','masint','imint','geoint','tempest'];
+    intOrder.forEach(k => { map[k] = []; });
+    BANDS.forEach(b => {
+        const d = DATA[b.id];
+        if(!d || !d.intels) return;
+        intOrder.forEach(k => {
+            if(d.intels[k] && d.intels[k].active) map[k].push(b.id);
+        });
+    });
+    return map;
+}
+
+const INT_BANDS = buildReverseMap();
+
+function enterIntFocus(intId){
+    if(focusedInt === intId){ exitIntFocus(); return; } // toggle off
+    focusedInt = intId;
+
+    const activeBands = INT_BANDS[intId] || [];
+    const info = INTELS[intId];
+
+    // Find all INTs that share any of these bands (associated INTs)
+    const associatedInts = new Set();
+    activeBands.forEach(bandId => {
+        const d = DATA[bandId];
+        if(!d || !d.intels) return;
+        Object.keys(d.intels).forEach(k => {
+            if(d.intels[k] && d.intels[k].active && k !== intId) associatedInts.add(k);
+        });
+    });
+
+    // Update spectrum bar: highlight active bands, dim others
+    document.querySelectorAll('.seg').forEach(s => {
+        s.classList.remove('dim','focus-highlight','focus-dim');
+        if(activeBands.includes(s.dataset.band)){
+            s.classList.add('focus-highlight');
+        } else {
+            s.classList.add('focus-dim');
+        }
+    });
+
+    // Update perception strip
+    document.querySelectorAll('.p-seg').forEach(s => {
+        const segBands = s.dataset.bands.split(',');
+        s.classList.remove('dim','focus-highlight','focus-dim');
+        if(segBands.some(b => activeBands.includes(b))){
+            s.classList.add('focus-highlight');
+        } else {
+            s.classList.add('focus-dim');
+        }
+    });
+
+    // Hide cursor line in focus mode
+    document.getElementById('cursorLine').style.opacity = '0';
+
+    // Update INT cards
+    const intOrder=['comint','elint','fisint','masint','imint','geoint','tempest'];
+    intOrder.forEach(k => {
+        const card = document.getElementById('int-'+k);
+        const body = document.getElementById('intBody-'+k);
+        card.classList.remove('active','inactive','selected','associated','focus-inactive');
+
+        if(k === intId){
+            card.classList.add('selected');
+            // Show summary of all bands this INT covers
+            let html = '<div style="font-size:10px;color:var(--text2);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em">Active across '+activeBands.length+' band'+(activeBands.length!==1?'s':'')+':</div>';
+            activeBands.forEach(bandId => {
+                const band = BANDS.find(b=>b.id===bandId);
+                const d = DATA[bandId];
+                const intData = d && d.intels && d.intels[k];
+                if(intData){
+                    html += '<div style="margin-bottom:6px;padding-left:8px;border-left:3px solid '+band.color+'">';
+                    html += '<div style="font-size:10px;font-weight:700;color:'+band.color+';margin-bottom:2px">'+band.name+'</div>';
+                    html += '<div>'+intData.body+'</div>';
+                    html += '</div>';
+                }
+            });
+            body.innerHTML = html;
+        } else if(associatedInts.has(k)){
+            card.classList.add('associated');
+            // Show which shared bands
+            const sharedBands = INT_BANDS[k].filter(b => activeBands.includes(b));
+            const sharedNames = sharedBands.map(b => BANDS.find(x=>x.id===b).name);
+            body.innerHTML = '<div style="font-size:10px;color:var(--text2);margin-bottom:4px">Also active in: <strong>'+sharedNames.join(', ')+'</strong></div>';
+            // Show brief per shared band
+            sharedBands.forEach(bandId => {
+                const band = BANDS.find(b=>b.id===bandId);
+                const d = DATA[bandId];
+                const intData = d && d.intels && d.intels[k];
+                if(intData){
+                    body.innerHTML += '<div style="margin-bottom:4px;padding-left:6px;border-left:2px solid '+band.color+';font-size:10px">'+intData.body+'</div>';
+                }
+            });
+        } else {
+            card.classList.add('focus-inactive');
+            body.innerHTML = '<span class="inactive-msg">No overlap with '+info.title+'</span>';
+        }
+    });
+
+    // Show focus banner
+    const banner = document.getElementById('focusBanner');
+    banner.classList.add('visible');
+    document.getElementById('fbDot').style.background = info.dot;
+    document.getElementById('fbTitle').textContent = info.title;
+    document.getElementById('fbSub').textContent = info.sub;
+    document.getElementById('fbBands').textContent = activeBands.map(b=>BANDS.find(x=>x.id===b).name).join(' · ');
+
+    // Update left panel with aggregate info for this INT
+    const propEl = document.getElementById('propType');
+    const penEl = document.getElementById('propPen');
+    const bwEl = document.getElementById('propBw');
+    propEl.textContent = activeBands.length + ' bands: ' + activeBands.map(b=>BANDS.find(x=>x.id===b).name).join(', ');
+    penEl.textContent = 'Varies by band';
+    bwEl.textContent = 'Varies by band';
+
+    // Aggregate systems across all active bands
+    const sysEl = document.getElementById('systemsList');
+    sysEl.innerHTML = '';
+    activeBands.forEach(bandId => {
+        const d = DATA[bandId];
+        const band = BANDS.find(b=>b.id===bandId);
+        if(d && d.systems){
+            d.systems.forEach(s => {
+                const item = document.createElement('div');
+                item.className = 'sys-item';
+                item.innerHTML = '<span class="sys-name" style="color:'+band.color+'">'+s.name+'</span><span class="sys-desc">'+s.desc+'</span>';
+                sysEl.appendChild(item);
+            });
+        }
+    });
+
+    // Human perception: show overview
+    document.getElementById('humanSense').innerHTML =
+        '<div style="color:var(--text2);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px">'+info.title+' Spectrum Coverage</div>'+
+        '<div style="font-size:11px;line-height:1.5">'+info.title+' ('+info.sub+') operates across <strong>'+activeBands.length+' band'+(activeBands.length!==1?'s':'')+'</strong> of the electromagnetic spectrum, from <strong>'+BANDS.find(b=>b.id===activeBands[0]).name+'</strong> through <strong>'+BANDS.find(b=>b.id===activeBands[activeBands.length-1]).name+'</strong>.</div>';
+}
+
+function exitIntFocus(){
+    focusedInt = null;
+
+    // Remove all focus classes
+    document.querySelectorAll('.seg').forEach(s => s.classList.remove('focus-highlight','focus-dim'));
+    document.querySelectorAll('.p-seg').forEach(s => s.classList.remove('focus-highlight','focus-dim'));
+
+    // Show cursor line
+    document.getElementById('cursorLine').style.opacity = '1';
+
+    // Hide banner
+    document.getElementById('focusBanner').classList.remove('visible');
+
+    // Re-run normal display from last known position
+    updateDisplay(lastFreq || 76);
+}
+
+// ════════════════════════════════════════════
+// EVENT LISTENERS
+// ════════════════════════════════════════════
+
+let lastFreq = 76;
+
+function attachEventListeners(){
+    const track=document.getElementById('spectrumTrack');
+    let dragging=false;
+
+    function handle(e){
+        if(focusedInt) exitIntFocus(); // exit focus mode when touching spectrum
+        const rect=track.getBoundingClientRect();
+        const x=e.touches?e.touches[0].clientX:e.clientX;
+        const frac=Math.max(0,Math.min(1,(x-rect.left)/rect.width));
+        const freq = freqFromPosition(frac);
+        lastFreq = freq;
+        updateDisplay(freq);
+    }
+
+    track.addEventListener('mousedown',e=>{dragging=true;handle(e)});
+    document.addEventListener('mousemove',e=>{if(dragging)handle(e)});
+    document.addEventListener('mouseup',()=>{dragging=false});
+    track.addEventListener('touchstart',e=>{dragging=true;handle(e)},{passive:true});
+    document.addEventListener('touchmove',e=>{if(dragging)handle(e)},{passive:true});
+    document.addEventListener('touchend',()=>{dragging=false});
+
+    // Close button on focus banner
+    document.getElementById('fbClose').addEventListener('click', exitIntFocus);
+}
+
+function attachIntClickHandlers(){
+    const intOrder=['comint','elint','fisint','masint','imint','geoint','tempest'];
+    intOrder.forEach(k => {
+        document.getElementById('int-'+k).addEventListener('click', (e) => {
+            e.stopPropagation();
+            enterIntFocus(k);
+        });
+    });
+}
+
+// ════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════
+
+function init(){
+    buildSpectrumBar();
+    buildPerceptionStrip();
+    buildIntGrid();
+    attachEventListeners();
+    attachIntClickHandlers();
+    updateDisplay(76); // Start at ELF
+}
+
+document.addEventListener('DOMContentLoaded',init);
+</script>
+</body>
+</html>
